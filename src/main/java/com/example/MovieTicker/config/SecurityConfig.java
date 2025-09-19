@@ -28,10 +28,10 @@ public class SecurityConfig {
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("http://localhost:5173") // quay về React
-                .invalidateHttpSession(true)               // huỷ session
-                .clearAuthentication(true)                
-                .deleteCookies("JSESSIONID")               
+                .logoutSuccessUrl("http://localhost:5173") 
+                .invalidateHttpSession(true)               
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID")
             );
 
         return http.build();

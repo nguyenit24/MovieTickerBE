@@ -18,7 +18,10 @@ import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.UserResponse;
 import com.example.MovieTicker.service.UserService;
 
+import jakarta.validation.Valid;
+
 @RestController
+@Valid
 @RequestMapping("/api/users")
 public class UserController {
     @Autowired
