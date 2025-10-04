@@ -19,7 +19,7 @@ public class LoaiGhe {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String MaLoaiGhe;
 
-    @Column(columnDefinition = "NVARCHAR(255)",  nullable = false)
+    @Column(length = 255,  nullable = false)
     private String TenLoaiGhe;
 
     private float PhuThu;

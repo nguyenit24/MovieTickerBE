@@ -24,7 +24,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         Map<String, Object> body = new HashMap<>();
         body.put("code", 400);
-        // lấy message trigger trả về
         body.put("message", ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage());
         return ResponseEntity.badRequest().body(body);
     }

@@ -20,7 +20,7 @@ public class TheLoaiPhim {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String MaTheLoai;
 
-    @Column(columnDefinition = "NVARCHAR(255)", unique = true, nullable = false)
+    @Column(length = 255, unique = true, nullable = false)
     private String TenTheLoai;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)

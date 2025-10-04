@@ -21,7 +21,8 @@ public class UserService {
     private UserMapper userMapper;
 
     public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
+        // return userRepository.existsByUsername(username);
+        return false;
     }
     
     public UserResponse createUser(UserCreationRequest request) {
@@ -45,9 +46,10 @@ public class UserService {
     }
 
     public UserResponse getUserByUsername(String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return userMapper.toUserResponse(user);
+        // User user = userRepository.findByUsername(username)
+        //         .orElseThrow(() -> new RuntimeException("User not found"));
+        // return userMapper.toUserResponse(user);
+        return null;
     }
 
     public List<UserResponse> getAllUsers() {

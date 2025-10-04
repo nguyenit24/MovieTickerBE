@@ -12,9 +12,9 @@ import com.example.MovieTicker.response.UserResponse;
 public interface UserMapper {
     UserResponse toUserResponse(User user);
 
-    @Mapping(target = "id", ignore = true)
+    // @Mapping(target = "id", ignore = true)
     User toUser(UserCreationRequest request);
 
-    @Mapping(target = "id", ignore = true)
+    // @Mapping(target = "id", ignore = true)
     void updateUser(@MappingTarget User user, UserCreationRequest request);
 }

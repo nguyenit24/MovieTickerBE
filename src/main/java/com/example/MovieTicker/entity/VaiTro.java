@@ -1,0 +1,20 @@
+package com.example.MovieTicker.entity;
+import java.util.List;
+
+import jakarta.persistence.*;
+import lombok.*;
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "VaiTro")
+public class VaiTro {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int VaiTroID;
+    private String TenVaiTro;
+
+    @OneToMany(mappedBy = "vaiTro", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<TaiKhoan> taiKhoans;
+}

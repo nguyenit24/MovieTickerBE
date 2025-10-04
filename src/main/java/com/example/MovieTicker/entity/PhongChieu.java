@@ -17,7 +17,7 @@ public class PhongChieu {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String MaPhongChieu;
 
-    @Column(columnDefinition = "NVARCHAR(500)", unique = true, nullable = false)
+    @Column(length = 255, unique = true, nullable = false)
     private String TenPhong;
 
     private int SoLuongGhe;

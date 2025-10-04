@@ -1,6 +1,6 @@
 package com.example.MovieTicker.entity;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import jakarta.persistence.CascadeType;
@@ -10,9 +10,10 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.validation.constraints.Email;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,24 +24,26 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+@Table(name = "HoaDon")
+public class HoaDon {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long MaUser;
+    private Long maHD;
+
+    @ManyToOne
+    @JoinColumn(name = "maUser", nullable = false)
+    private User user;
+
+    private LocalDateTime ngayLap;
 
     @Column(nullable = false)
-    private String HoTen;
+    private Double tongTien;
+
     
-    @Email
-    @Column(unique = true, nullable = false)
-    private String Email;
-
     @Column(nullable = false)
-    private String SĐT;
+    private String maGiaoDich;
 
-    @Column(nullable = false)
-    private LocalDate NgaySinh;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<TaiKhoan> taiKhoan;
+    @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Ve> ves;
 }
