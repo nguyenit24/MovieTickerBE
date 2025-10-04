@@ -12,8 +12,8 @@ import lombok.*;
 public class VaiTro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int VaiTroID;
-    private String TenVaiTro;
+    private int vaiTroId;
+    private String tenVaiTro;
 
     @OneToMany(mappedBy = "vaiTro", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaiKhoan> taiKhoans;

@@ -15,12 +15,12 @@ import java.util.List;
 public class PhongChieu {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaPhongChieu;
+    private String maPhongChieu;
 
     @Column(length = 255, unique = true, nullable = false)
-    private String TenPhong;
+    private String tenPhong;
 
-    private int SoLuongGhe;
+    private int soLuongGhe;
 
     @OneToMany(mappedBy = "phongChieu", cascade = CascadeType.ALL)
     private List<Ghe> listGhe = new ArrayList<>();

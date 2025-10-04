@@ -10,10 +10,10 @@ import lombok.*;
 public class DichVuDiKem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maDV;
+    private Long maDv;
 
     @Column(nullable = false)
-    private String tenDV;
+    private String tenDv;
 
     @Column(nullable = false)
     private Double donGia;

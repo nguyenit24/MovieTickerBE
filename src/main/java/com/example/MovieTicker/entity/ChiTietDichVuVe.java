@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 public class ChiTietDichVuVe {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maCTDV;
+    private Long maCtdv;
 
     @Column(nullable = false)
     private Integer soLuong;
@@ -35,6 +35,6 @@ public class ChiTietDichVuVe {
     private Ve ve;
 
     @ManyToOne
-    @JoinColumn(name = "maDV", nullable = false)
+    @JoinColumn(name = "maDv", nullable = false)
     private DichVuDiKem dichVuDiKem;
 }

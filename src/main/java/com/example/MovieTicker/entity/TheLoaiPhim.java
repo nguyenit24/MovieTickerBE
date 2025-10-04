@@ -18,10 +18,10 @@ import java.util.List;
 public class TheLoaiPhim {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaTheLoai;
+    private String maTheLoai;
 
     @Column(length = 255, unique = true, nullable = false)
-    private String TenTheLoai;
+    private String tenTheLoai;
 
     @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
     @JoinTable(

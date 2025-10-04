@@ -16,10 +16,10 @@ import lombok.*;
 public class KhuyenMai {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maKM;
+    private Long maKm;
 
     @Column(nullable = false)
-    private String tenKM;
+    private String tenKm;
 
     @Column(nullable = false)
     private String moTa;

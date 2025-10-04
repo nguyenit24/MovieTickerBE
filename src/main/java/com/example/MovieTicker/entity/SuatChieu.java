@@ -16,12 +16,12 @@ import java.time.LocalDate;
 public class SuatChieu {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaSuatChieu;
+    private String maSuatChieu;
 
-    private int DonGiaCoSo;
+    private int donGiaCoSo;
 
     @Column(nullable = false)
-    private LocalDate ThoiGianBatDau;
+    private LocalDate thoiGianBatDau;
 
     @ManyToOne
     @JoinColumn(name = "MaPhim")

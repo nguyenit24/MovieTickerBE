@@ -12,5 +12,5 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class VeKhuyenMaiId implements Serializable {
     private Long maVe;
-    private Long maKM;
+    private Long maKm;
 }

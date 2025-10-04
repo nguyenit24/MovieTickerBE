@@ -26,20 +26,20 @@ import lombok.NoArgsConstructor;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long MaUser;
+    private Long maUser;
 
     @Column(nullable = false)
-    private String HoTen;
-    
+    private String hoTen;
+
     @Email
     @Column(unique = true, nullable = false)
-    private String Email;
+    private String email;
 
     @Column(nullable = false)
-    private String SĐT;
+    private String sdt;
 
     @Column(nullable = false)
-    private LocalDate NgaySinh;
+    private LocalDate ngaySinh;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaiKhoan> taiKhoan;

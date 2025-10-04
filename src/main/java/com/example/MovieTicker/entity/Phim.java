@@ -18,24 +18,24 @@ import java.util.List;
 public class Phim {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaPhim;
+    private String maPhim;
     @Column(unique = true, nullable = false, length = 255)
-    private String TenPhim;
+    private String tenPhim;
     @Column(length = 1000)
-    private String MoTa;
+    private String moTa;
     @Column(length = 255)
-    private String DaoDien;
+    private String daoDien;
     @Column(length = 500)
-    private String DienVien;
-    private int ThoiLuong;
-    private LocalDate NgayKhoiChieu;
+    private String dienVien;
+    private int thoiLuong;
+    private LocalDate ngayKhoiChieu;
     @Column(length = 500)
-    private String HinhAnh;
+    private String hinhAnh;
     @Column(length = 500)
-    private String TrailerURL;
-    private int Tuoi;
+    private String trailerURL;
+    private int tuoi;
     @Column(length = 255)
-    private String TrangThai;
+    private String trangThai;
 
     @ManyToMany(mappedBy = "listPhim",  fetch = FetchType.LAZY)
     private List<TheLoaiPhim> listTheLoai = new ArrayList<>();

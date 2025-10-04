@@ -14,16 +14,16 @@ import lombok.NoArgsConstructor;
 public class Ghe {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaGhe;
+    private String maGhe;
 
     @Column(columnDefinition = "NVARCHAR(500)", nullable = false)
-    private String TenGhe;
+    private String tenGhe;
 
     @ManyToOne
     @JoinColumn(name = "MaPhongChieu")
-    private PhongChieu  phongChieu;
+    private PhongChieu phongChieu;
 
     @ManyToOne
     @JoinColumn(name = "MaLoaiGhe")
-    private  LoaiGhe loaiGhe;
+    private LoaiGhe loaiGhe;
 }

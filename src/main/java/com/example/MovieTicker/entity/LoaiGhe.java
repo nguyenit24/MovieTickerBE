@@ -17,12 +17,12 @@ import java.util.List;
 public class LoaiGhe {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String MaLoaiGhe;
+    private String maLoaiGhe;
 
     @Column(length = 255,  nullable = false)
-    private String TenLoaiGhe;
+    private String tenLoaiGhe;
 
-    private float PhuThu;
+    private float phuThu;
 
     @OneToMany(mappedBy = "loaiGhe", cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     List<Ghe> listGhe = new ArrayList<>();

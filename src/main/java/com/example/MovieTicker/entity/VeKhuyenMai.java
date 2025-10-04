@@ -21,8 +21,8 @@ public class VeKhuyenMai {
     private Ve ve;
 
     @ManyToOne
-    @MapsId("maKM")
-    @JoinColumn(name = "MaKM")
+    @MapsId("maKm")
+    @JoinColumn(name = "maKm")
     private KhuyenMai khuyenMai;
 
     @Column(name = "GiaTriGiam",nullable = false)
