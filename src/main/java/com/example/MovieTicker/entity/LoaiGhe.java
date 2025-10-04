@@ -1,0 +1,36 @@
+package com.example.MovieTicker.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Entity
+public class LoaiGhe {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String MaLoaiGhe;
+
+    @Column(columnDefinition = "NVARCHAR(255)",  nullable = false)
+    private String TenLoaiGhe;
+
+    private float PhuThu;
+
+    @OneToMany(mappedBy = "loaiGhe", cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    List<Ghe> listGhe = new ArrayList<>();
+
+    @PreRemove
+    public void preRemove(){
+        for (Ghe ghe : listGhe){
+            ghe.setLoaiGhe(null);
+        }
+    }
+}
