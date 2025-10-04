@@ -1,6 +1,5 @@
 package com.example.MovieTicker.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;

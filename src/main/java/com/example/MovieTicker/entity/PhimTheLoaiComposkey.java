@@ -1,13 +1,13 @@
-package com.example.MovieTicker.entity;
+// package com.example.MovieTicker.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
+// import jakarta.persistence.Column;
+// import jakarta.persistence.Embeddable;
 
-@Embeddable
-public class PhimTheLoaiComposkey {
-    @Column(name = "MaTheLoai")
-    private String MaTheLoai;
+// @Embeddable
+// public class PhimTheLoaiComposkey {
+//     @Column(name = "MaTheLoai")
+//     private String MaTheLoai;
 
-    @Column(name = "MaPhim")
-    private String MaPhim;
-}
+//     @Column(name = "MaPhim")
+//     private String MaPhim;
+// }

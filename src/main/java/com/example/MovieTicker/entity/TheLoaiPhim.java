@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,15 +22,11 @@ public class TheLoaiPhim {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String maTheLoai;
 
-    @Column(length = 255, unique = true, nullable = false)
+    @Column(length = 255, unique = true, nullable = true)
     private String tenTheLoai;
 
-    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
-    @JoinTable(
-            name = "Phim_TheLoai",
-            joinColumns = @JoinColumn(name = "MaPhim"),
-            inverseJoinColumns = @JoinColumn(name = "MaTheLoai")
-    )
+    @ManyToMany(mappedBy = "listTheLoai", fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Phim> listPhim = new ArrayList<>();
 
     @PreRemove

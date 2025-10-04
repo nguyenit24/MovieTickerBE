@@ -37,9 +37,14 @@ public class Phim {
     @Column(length = 255)
     private String trangThai;
 
-    @ManyToMany(mappedBy = "listPhim",  fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.MERGE)
+    @JoinTable(
+        name = "phim_the_loai",
+        joinColumns = @JoinColumn(name = "maPhim"), 
+        inverseJoinColumns = @JoinColumn(name = "maTheLoai")
+    )
     private List<TheLoaiPhim> listTheLoai = new ArrayList<>();
 
-    @OneToMany(mappedBy = "phim", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "phim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<SuatChieu> listSuatChieu = new ArrayList<>();
 }

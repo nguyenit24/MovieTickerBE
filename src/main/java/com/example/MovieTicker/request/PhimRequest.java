@@ -22,4 +22,5 @@ public class PhimRequest {
     private String trailerURL;
     private int tuoi;
     private String trangThai;
+    private String[] theLoai;
 }
