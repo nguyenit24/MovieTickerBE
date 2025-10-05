@@ -1,7 +1,11 @@
 package com.example.MovieTicker.service;
 
+import java.util.List;
+
 import com.example.MovieTicker.entity.LoaiGhe;
+import com.example.MovieTicker.entity.Ghe;
 import com.example.MovieTicker.repository.LoaiGheRepository;
+import com.example.MovieTicker.repository.GheRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,6 +14,8 @@ import org.springframework.stereotype.Service;
 public class LoaiGheService {
     @Autowired
     private LoaiGheRepository loaiGheRepository;
+    @Autowired
+    private GheRepository gheRepository;
 
     @PostConstruct
     public void seedLoaiGhe() {
@@ -30,5 +36,9 @@ public class LoaiGheService {
                 loaiGheRepository.save(lg);
             }
         }
+    }
+
+    public List<LoaiGhe> getAllLoaiGhe() {
+        return loaiGheRepository.findAll();
     }
 }

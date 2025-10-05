@@ -2,44 +2,29 @@ package com.example.MovieTicker.controller;
 
 import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.repository.PhongChieuRepository;
+import com.example.MovieTicker.response.ApiResponse;
+import com.example.MovieTicker.service.PhongChieuService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @RestController
-@RequestMapping("/api/phong-chieu")
+@RequestMapping("/api/phongchieu")
 public class PhongChieuController {
-    @Autowired
-    private PhongChieuRepository phongChieuRepository;
+   @Autowired
+   PhongChieuService phongChieuService;
 
-    @GetMapping
-    public List<PhongChieu> getAll() {
-        return phongChieuRepository.findAll();
-    }
-
-    @GetMapping("/{id}")
-    public PhongChieu getById(@PathVariable String id) {
-        return phongChieuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng chiếu"));
-    }
-
-    @PostMapping
-    public PhongChieu create(@RequestBody PhongChieu phongChieu) {
-        return phongChieuRepository.save(phongChieu);
-    }
-
-    @PutMapping("/{id}")
-    public PhongChieu update(@PathVariable String id, @RequestBody PhongChieu phongChieu) {
-        PhongChieu pc = phongChieuRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng chiếu"));
-        pc.setTenPhong(phongChieu.getTenPhong());
-        pc.setSoLuongGhe(phongChieu.getSoLuongGhe());
-        return phongChieuRepository.save(pc);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
-        phongChieuRepository.deleteById(id);
-    }
+   @GetMapping
+   public ApiResponse<?> getListPhongChieu() {
+         return ApiResponse.<List<PhongChieu>>builder()
+           .code(200)
+           .message("Lấy danh sách phòng chiếu thành công")
+           .data(phongChieuService.getListPhongChieu())
+           .build();
+   }
+   
 }

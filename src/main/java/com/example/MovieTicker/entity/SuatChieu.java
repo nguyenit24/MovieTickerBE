@@ -7,6 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Data
 @AllArgsConstructor
@@ -21,10 +24,11 @@ public class SuatChieu {
     private int donGiaCoSo;
 
     @Column(nullable = false)
-    private LocalDate thoiGianBatDau;
+    private LocalDateTime thoiGianBatDau;
 
     @ManyToOne
     @JoinColumn(name = "MaPhim")
+    @JsonIgnore
     private Phim phim;
 
     @ManyToOne

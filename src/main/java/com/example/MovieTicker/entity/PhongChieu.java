@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Data
 @Entity
 @AllArgsConstructor
@@ -28,5 +30,6 @@ public class PhongChieu {
     private List<Ghe> listGhe = new ArrayList<>();
 
     @OneToMany(mappedBy = "phongChieu", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<SuatChieu> listSuatChieu = new ArrayList<>();
 }

@@ -1,5 +1,7 @@
 package com.example.MovieTicker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +23,11 @@ public class Ghe {
 
     @ManyToOne
     @JoinColumn(name = "MaPhongChieu")
+    @JsonIgnore
     private PhongChieu phongChieu;
 
     @ManyToOne
     @JoinColumn(name = "MaLoaiGhe")
+    @JsonIgnore
     private LoaiGhe loaiGhe;
 }

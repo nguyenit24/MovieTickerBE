@@ -3,6 +3,9 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.repository.PhongChieuRepository;
 import jakarta.annotation.PostConstruct;
+
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,5 +23,9 @@ public class PhongChieuService {
                 phongChieuRepository.save(pc);
             }
         }
+    }
+
+    public List<PhongChieu> getListPhongChieu() {
+        return phongChieuRepository.findAll();
     }
 }

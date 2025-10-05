@@ -10,6 +10,7 @@ import com.example.MovieTicker.request.SuatChieuRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -26,11 +27,30 @@ public class SuatChieuService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phim"));
         PhongChieu phongChieu = phongChieuRepository.findById(request.getMaPhongChieu())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng chiếu"));
+
+        // Thời gian bắt đầu và kết thúc (bao gồm thời gian dọn dẹp)
+        LocalDateTime batDauMoi = request.getThoiGianBatDau();
+        LocalDateTime ketThucMoi = batDauMoi.plusMinutes(phim.getThoiLuong()).plusHours(1); // +1 tiếng dọn dẹp
+
+        // Lấy tất cả suất chiếu cùng phòng
+        List<SuatChieu> suatChieuCungPhong = suatChieuRepository.findByPhongChieu(phongChieu);
+        // Kiểm tra giao nhau
+        for (SuatChieu sc : suatChieuCungPhong) {
+            LocalDateTime batDauCu = sc.getThoiGianBatDau();
+            LocalDateTime ketThucCu = batDauCu.plusMinutes(sc.getPhim().getThoiLuong()).plusHours(1); // +1 tiếng dọn dẹp
+
+            // Nếu khoảng thời gian giao nhau thì báo lỗi
+            boolean isOverlap = !(ketThucMoi.isBefore(batDauCu) || batDauMoi.isAfter(ketThucCu));
+            if (isOverlap) {
+                throw new RuntimeException("Suất chiếu bị giao nhau với suất chiếu khác trong cùng phòng (bao gồm thời gian dọn dẹp)!");
+            }
+        }
+
         SuatChieu suatChieu = SuatChieu.builder()
-                .donGiaCoSo(request.getDonGiaCoSo())
-                .thoiGianBatDau(request.getThoiGianBatDau())
                 .phim(phim)
                 .phongChieu(phongChieu)
+                .thoiGianBatDau(request.getThoiGianBatDau())
+                .donGiaCoSo(request.getDonGiaCoSo())
                 .build();
         return suatChieuRepository.save(suatChieu);
     }
