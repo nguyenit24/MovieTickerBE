@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.example.MovieTicker.entity.Phim;
@@ -120,5 +122,9 @@ public class PhimService {
     
     public boolean existsByTenPhim(String tenPhim) {
         return phimRepository.existsByTenPhim(tenPhim);
+    }
+
+    public Page<Phim> getPhimPage(Pageable pageable) {
+        return phimRepository.findAll(pageable);
     }
 }
