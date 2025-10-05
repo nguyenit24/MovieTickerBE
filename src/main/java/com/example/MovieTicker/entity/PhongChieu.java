@@ -2,6 +2,7 @@ package com.example.MovieTicker.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,6 +13,7 @@ import java.util.List;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class PhongChieu {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
