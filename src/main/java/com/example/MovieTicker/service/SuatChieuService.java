@@ -8,6 +8,8 @@ import com.example.MovieTicker.repository.PhimRepository;
 import com.example.MovieTicker.repository.PhongChieuRepository;
 import com.example.MovieTicker.request.SuatChieuRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -57,6 +59,10 @@ public class SuatChieuService {
 
     public List<SuatChieu> getAllSuatChieu() {
         return suatChieuRepository.findAll();
+    }
+    
+    public Page<SuatChieu> getSuatChieuPage(Pageable pageable) {
+        return suatChieuRepository.findAll(pageable);
     }
 
     public SuatChieu getSuatChieuById(String id) {

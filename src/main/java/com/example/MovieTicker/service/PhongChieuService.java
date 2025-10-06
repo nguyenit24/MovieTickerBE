@@ -7,6 +7,8 @@ import jakarta.annotation.PostConstruct;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,5 +29,9 @@ public class PhongChieuService {
 
     public List<PhongChieu> getListPhongChieu() {
         return phongChieuRepository.findAll();
+    }
+    
+    public Page<PhongChieu> getPhongChieuPage(Pageable pageable) {
+        return phongChieuRepository.findAll(pageable);
     }
 }
