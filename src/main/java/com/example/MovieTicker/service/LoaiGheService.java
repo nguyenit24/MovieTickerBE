@@ -1,12 +1,17 @@
 package com.example.MovieTicker.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.example.MovieTicker.entity.LoaiGhe;
 import com.example.MovieTicker.repository.LoaiGheRepository;
 import com.example.MovieTicker.repository.GheRepository;
+import com.example.MovieTicker.request.LoaiGheRequest;
+
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,5 +44,46 @@ public class LoaiGheService {
 
     public List<LoaiGhe> getAllLoaiGhe() {
         return loaiGheRepository.findAll();
+    }
+    
+    public LoaiGhe getLoaiGheById(String id) {
+        Optional<LoaiGhe> loaiGheOptional = loaiGheRepository.findById(id);
+        return loaiGheOptional.orElse(null);
+    }
+    
+    public LoaiGhe createLoaiGhe(LoaiGheRequest request) {
+        LoaiGhe loaiGhe = new LoaiGhe();
+        if(loaiGheRepository.existsByTenLoaiGhe(request.getTenLoaiGhe())){
+            throw new RuntimeException("Loại ghế với tên '" + request.getTenLoaiGhe() + "' đã tồn tại");
+        }
+        loaiGhe.setTenLoaiGhe(request.getTenLoaiGhe());
+        loaiGhe.setPhuThu(request.getPhuThu());
+        
+        return loaiGheRepository.save(loaiGhe);
+    }
+    
+    public LoaiGhe updateLoaiGhe(String id, LoaiGheRequest request) {
+        Optional<LoaiGhe> loaiGheOptional = loaiGheRepository.findById(id);
+        
+        if (loaiGheOptional.isPresent()) {
+            LoaiGhe loaiGhe = loaiGheOptional.get();
+            loaiGhe.setTenLoaiGhe(request.getTenLoaiGhe());
+            loaiGhe.setPhuThu(request.getPhuThu());
+            
+            return loaiGheRepository.save(loaiGhe);
+        }
+        
+        return null;
+    }
+    
+    public boolean deleteLoaiGhe(String id) {
+        Optional<LoaiGhe> loaiGheOptional = loaiGheRepository.findById(id);
+        
+        if (loaiGheOptional.isPresent()) {
+            loaiGheRepository.delete(loaiGheOptional.get());
+            return true;
+        }
+        
+        return false;
     }
 }

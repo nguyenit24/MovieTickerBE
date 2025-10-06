@@ -25,7 +25,5 @@ public interface PhimRepository extends JpaRepository<Phim, String> {
 
     Page<Phim> findAll(Pageable pageable);
     
-    @Query("SELECT COUNT(p) FROM Phim p")
-    long countPhim();
 
 }

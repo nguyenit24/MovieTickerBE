@@ -2,6 +2,7 @@ package com.example.MovieTicker.controller;
 
 import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.repository.PhongChieuRepository;
+import com.example.MovieTicker.request.PhongChieuRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.PhongChieuService;
 
@@ -49,5 +50,66 @@ public class PhongChieuController {
            .message("Lấy danh sách phòng chiếu phân trang thành công")
            .data(response)
            .build();
+   }
+   
+   @GetMapping("/{id}")
+   public ApiResponse<?> getPhongChieuById(@PathVariable String id) {
+       PhongChieu phongChieu = phongChieuService.getPhongChieuById(id);
+       if (phongChieu != null) {
+           return ApiResponse.<PhongChieu>builder()
+                   .code(HttpStatus.OK.value())
+                   .message("Lấy thông tin phòng chiếu thành công")
+                   .data(phongChieu)
+                   .build();
+       } else {
+           return ApiResponse.builder()
+                   .code(HttpStatus.NOT_FOUND.value())
+                   .message("Không tìm thấy phòng chiếu với mã: " + id)
+                   .build();
+       }
+   }
+   
+   @PostMapping
+   public ApiResponse<?> createPhongChieu(@RequestBody PhongChieuRequest request) {
+       PhongChieu phongChieu = phongChieuService.createPhongChieu(request);
+       return ApiResponse.<PhongChieu>builder()
+               .code(HttpStatus.CREATED.value())
+               .message("Tạo phòng chiếu thành công")
+               .data(phongChieu)
+               .build();
+   }
+   
+   @PutMapping("/{id}")
+   public ApiResponse<?> updatePhongChieu(@PathVariable String id, @RequestBody PhongChieuRequest request) {
+       PhongChieu updatedPhongChieu = phongChieuService.updatePhongChieu(id, request);
+       if (updatedPhongChieu != null) {
+           return ApiResponse.<PhongChieu>builder()
+                   .code(HttpStatus.OK.value())
+                   .message("Cập nhật phòng chiếu thành công")
+                   .data(updatedPhongChieu)
+                   .build();
+       } else {
+           return ApiResponse.builder()
+                   .code(HttpStatus.NOT_FOUND.value())
+                   .message("Không tìm thấy phòng chiếu với mã: " + id)
+                   .build();
+       }
+   }
+   
+   @DeleteMapping("/{id}")
+   public ApiResponse<?> deletePhongChieu(@PathVariable String id) {
+       boolean result = phongChieuService.deletePhongChieu(id);
+       if (result) {
+           return ApiResponse.<String>builder()
+                   .code(HttpStatus.OK.value())
+                   .message("Xóa phòng chiếu thành công")
+                   .data(id)
+                   .build();
+       } else {
+           return ApiResponse.builder()
+                   .code(HttpStatus.NOT_FOUND.value())
+                   .message("Không tìm thấy phòng chiếu với mã: " + id)
+                   .build();
+       }
    }
 }
