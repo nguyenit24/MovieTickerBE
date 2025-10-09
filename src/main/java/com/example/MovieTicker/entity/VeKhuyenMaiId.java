@@ -1,16 +1,16 @@
 package com.example.MovieTicker.entity;
 
+import java.io.Serializable;
 import jakarta.persistence.Embeddable;
 import lombok.*;
-
-import java.io.Serializable;
 
 @Embeddable
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode
 public class VeKhuyenMaiId implements Serializable {
     private Long maVe;
-    private Long maKm;
+    private String maKm; 
 }

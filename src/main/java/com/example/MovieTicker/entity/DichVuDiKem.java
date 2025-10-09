@@ -12,8 +12,11 @@ public class DichVuDiKem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long maDv;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String tenDv;
+
+    @Column(nullable = false)
+    private String urlHinh;
 
     @Column(nullable = false)
     private Double donGia;

@@ -6,7 +6,6 @@ import java.util.List;
 import jakarta.persistence.*;
 import lombok.*;
 
-
 @Entity
 @Data
 @NoArgsConstructor
@@ -15,8 +14,7 @@ import lombok.*;
 @Table(name = "KhuyenMai")
 public class KhuyenMai {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maKm;
+    private String maKm;
 
     @Column(nullable = false)
     private String tenKm;
@@ -25,7 +23,7 @@ public class KhuyenMai {
     private String moTa;
     
     @Column(nullable = false)
-    private Double giaTri;
+    private Double giaTri; // % giảm
 
     @Column(nullable = false)
     private LocalDate ngayBatDau;
@@ -35,4 +33,17 @@ public class KhuyenMai {
 
     @OneToMany(mappedBy = "khuyenMai")
     private List<VeKhuyenMai> ves;
+    
+    @PrePersist
+    public void prePersist() {
+        if (this.maKm == null) {
+            this.maKm = generateMaKm();
+        }
+    }
+    
+    private String generateMaKm() {
+        long timestamp = System.currentTimeMillis();
+        int random = (int) (Math.random() * 900) + 100;
+        return "KM" + String.valueOf(timestamp).substring(8) + random;
+    }
 }

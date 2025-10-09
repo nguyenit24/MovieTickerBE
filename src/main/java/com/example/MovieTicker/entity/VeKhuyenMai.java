@@ -1,9 +1,9 @@
 package com.example.MovieTicker.entity;
 
 import java.time.LocalDate;
-
 import jakarta.persistence.*;
 import lombok.*;
+
 @Entity
 @Table(name = "Ve_KhuyenMai")
 @Getter
@@ -25,12 +25,12 @@ public class VeKhuyenMai {
     @JoinColumn(name = "maKm")
     private KhuyenMai khuyenMai;
 
-    @Column(name = "GiaTriGiam",nullable = false)
+    @Column(name = "GiaTriGiam", nullable = false)
     private Double giaTriGiam;
 
-    @Column(name = "PhanTramGiam",nullable = false)
+    @Column(name = "PhanTramGiam", nullable = false)
     private Double phanTramGiam;
 
-    @Column(name = "NgayApDung",nullable = false)
+    @Column(name = "NgayApDung", nullable = false)
     private LocalDate ngayApDung;
 }
