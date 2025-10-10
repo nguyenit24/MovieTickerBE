@@ -85,19 +85,20 @@ public class HoaDonService {
         return momoAPI.createMomoQR(request);
     }
 
-    public CreateMomoResponse refundMomo(PaymentRequest paymentRequest, String transId) {
-        String orderId = paymentRequest.getOrderId();
+    public CreateMomoResponse refundMomo(PaymentRequest paymentRequest) {
+        String orderId = UUID.randomUUID().toString();
         long amount = paymentRequest.getAmount();
         String requestId = paymentRequest.getRequestId();
         String description = "Hoàn tiền hóa đơn" + orderId;
+        String transId = paymentRequest.getTransId();
 
-        String rawSignature = "partnerCode=" + partnerCode +
-                "&requestId=" + requestId +
-                "&orderId=" + orderId +
-                "&amount=" + amount +
-                "&transId=" + transId +
-                "&lang=vi" +
-                "&description=" + description;
+        String rawSignature = "accessKey=" + accessKey
+                + "&amount=" + amount
+                + "&description=" + description
+                + "&orderId=" + orderId
+                + "&partnerCode=" + partnerCode
+                + "&requestId=" + requestId
+                + "&transId=" + transId;
 
         String signature = PaymentConfig.hmacSHA256(secretKey, rawSignature);
 
@@ -108,7 +109,9 @@ public class HoaDonService {
                 .orderId(orderId)
                 .transId(transId)
                 .lang("vi")
-                .description(description).build();
+                .description(description)
+                .signature(signature)
+                .build();
         return momoAPI.createMomoRefund(request);
     }
 
@@ -178,7 +181,7 @@ public class HoaDonService {
         String vnp_Version = PaymentConfig.vnp_Version;
         String vnp_Command = "refund";
         String vnp_TmnCode = PaymentConfig.vnp_TmnCode;
-        String vnp_TransactionType = "02";
+        String vnp_TransactionType = paymentRequest.getTransType();
         String vnp_TxnRef = paymentRequest.getOrderId();
         long amount = paymentRequest.getAmount() * 100;
         String vnp_Amount = String.valueOf(amount);
