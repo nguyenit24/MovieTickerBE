@@ -33,13 +33,13 @@ public class HoaDonController {
         try {
             return new ApiResponse<>(
                     HttpStatus.CREATED.value(),
-                    "Tao thanh toan thanh cong",
+                    "Tạo thanh toán thành công",
                     paymentUrl
             );
         } catch (Exception e) {
             return new ApiResponse<>(
                     HttpStatus.NOT_FOUND.value(),
-                    "Tao thanh toan that bai",
+                    "Tạo thanh toán thất bại",
                     e.getMessage()
             );
         }
@@ -59,14 +59,14 @@ public class HoaDonController {
             data.put("responseCode", responseCode);
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
-                    "Tao thanh toan thanh cong",
+                    "Thanh toán thành công",
                     data
             );
         }
         return new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
-                "Tao thanh toan that bai",
-                null
+                "Thanh toán thất bại",
+                "Đã xảy ra lỗi"
         );
     }
 
@@ -94,20 +94,27 @@ public class HoaDonController {
         if (responseCode.equals("00")) {
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
-                    "Hoan tien thanh cong",
+                    "Hoàn tiền thành công",
                     message
             );
         }
         else if (responseCode.equals("94")) {
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
-                    "Hoan tien that bai",
-                    "Hoa don da hoan tien truoc do"
+                    "Hoàn tiền thất bại",
+                    "Hóa đơn đã được hoàn trước đó"
+            );
+        }
+        else if (responseCode.equals("93")) {
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Hoàn tiền thất bại",
+                    "Số tiền hoàn vượt quá số tiền giao dịch"
             );
         }
         return  new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
-                "Hoan tien that bai",
+                "Hoàn tiền thất bại",
                 message
         );
     }
@@ -117,14 +124,14 @@ public class HoaDonController {
         try {
             return new ApiResponse<>(
                     HttpStatus.CREATED.value(),
-                    "Tao thanh toan thanh cong",
+                    "Tạo thanh toán thành công",
                     invoiceService.createMoMoQR(paymentRequest)
             );
         }
         catch (Exception e) {
             return new ApiResponse<>(
                     HttpStatus.NOT_FOUND.value(),
-                    "Tao thanh toan that bai",
+                    "Tạo thanh toán thất bại",
                     e.getMessage()
             );
         }
@@ -136,7 +143,8 @@ public class HoaDonController {
             @RequestParam("transId") String transNo,
             @RequestParam("responseTime") String transDate,
             @RequestParam("requestId") String requestId,
-            @RequestParam("resultCode") Integer resultCode
+            @RequestParam("resultCode") Integer resultCode,
+            @RequestParam("message") String message
     ) throws IOException {
         if (resultCode == 0) {
             Map<String, Object> data = new HashMap<>();
@@ -146,14 +154,14 @@ public class HoaDonController {
             data.put("responseCode", resultCode);
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
-                    "Thanh toan thanh cong",
+                    "Thanh toán thành công",
                     data
             );
         }
         return new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
-                "Thanh toan that bai",
-                null
+                "Thanh toán thất bại",
+                message
         );
     }
 
@@ -176,13 +184,13 @@ public class HoaDonController {
         if (response.getResultCode() == 0) {
             return new  ApiResponse<> (
                     HttpStatus.OK.value(),
-                    "Hoan tien thanh cong",
+                    "Hoàn tiền thành công",
                     response.getMessage()
                     );
         }
         return new ApiResponse<>(
                 HttpStatus.NO_CONTENT.value(),
-                "Hoan tien that bai",
+                "Hoàn tiền thất bại",
                 response.getMessage()
         );
     }
