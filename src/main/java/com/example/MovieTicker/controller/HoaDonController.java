@@ -1,7 +1,6 @@
 package com.example.MovieTicker.controller;
 
-import com.example.MovieTicker.Model.ResponseModel;
-import com.example.MovieTicker.config.PaymentConfig;
+
 import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.CreateMomoResponse;
@@ -12,13 +11,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -51,7 +46,7 @@ public class HoaDonController {
             @RequestParam("vnp_TransactionNo") String transNo,
             @RequestParam("vnp_PayDate") String transDate,
             @RequestParam("vnp_ResponseCode") String responseCode
-    ) throws IOException {
+    ) {
         if (responseCode.equals("00")) {
             Map<String, Object> data = new HashMap<>();
             data.put("transactionNo", transNo);
@@ -91,32 +86,28 @@ public class HoaDonController {
         JsonObject response = JsonParser.parseString(paymentUrl).getAsJsonObject();
         String responseCode = response.get("vnp_ResponseCode").getAsString();
         String message = response.get("vnp_Message").getAsString();
-        if (responseCode.equals("00")) {
-            return new ApiResponse<>(
+        return switch (responseCode) {
+            case "00" -> new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Hoàn tiền thành công",
                     message
             );
-        }
-        else if (responseCode.equals("94")) {
-            return new ApiResponse<>(
+            case "94" -> new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Hoàn tiền thất bại",
                     "Hóa đơn đã được hoàn trước đó"
             );
-        }
-        else if (responseCode.equals("93")) {
-            return new ApiResponse<>(
+            case "93" -> new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Hoàn tiền thất bại",
                     "Số tiền hoàn vượt quá số tiền giao dịch"
             );
-        }
-        return  new ApiResponse<>(
-                HttpStatus.NOT_FOUND.value(),
-                "Hoàn tiền thất bại",
-                message
-        );
+            default -> new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Hoàn tiền thất bại",
+                    message
+            );
+        };
     }
 
     @PostMapping("/momo/create")
@@ -177,9 +168,8 @@ public class HoaDonController {
 
     @PostMapping("/momo/refund")
     public ApiResponse<?> getPaymentRefundMomo(
-            @RequestBody PaymentRequest paymentRequest,
-            HttpServletRequest request
-    ) throws IOException {
+            @RequestBody PaymentRequest paymentRequest
+    ) {
         CreateMomoResponse response = invoiceService.refundMomo(paymentRequest);
         if (response.getResultCode() == 0) {
             return new  ApiResponse<> (
