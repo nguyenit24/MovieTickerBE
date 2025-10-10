@@ -3,6 +3,8 @@ package com.example.MovieTicker.entity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,11 +31,10 @@ import lombok.NoArgsConstructor;
 public class HoaDon {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maHD;
+    private String maHD;
 
     @ManyToOne
-    @JoinColumn(name = "maUser", nullable = false)
+    @JoinColumn(name = "ma_user", nullable = true)
     private User user;
 
     private LocalDateTime ngayLap;
@@ -40,10 +42,27 @@ public class HoaDon {
     @Column(nullable = false)
     private Double tongTien;
 
-    
+    private String phuongThucThanhToan;
+
+    private String trangThai;
+
     @Column(nullable = false)
     private String maGiaoDich;
 
+    private String ghiChu;
+
+    @JsonIgnore
     @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ve> ves;
+
+    @PrePersist
+    protected void onCreate() {
+        ngayLap = LocalDateTime.now();
+        if (trangThai == null) {
+            trangThai = "PENDING";
+        }
+        if(maHD == null) {
+            maHD = "HD" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+        }
+    }
 }

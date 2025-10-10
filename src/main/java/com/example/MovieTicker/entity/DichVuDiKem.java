@@ -22,4 +22,5 @@ public class DichVuDiKem {
     private Double donGia;
 
     private String moTa;
+
 }

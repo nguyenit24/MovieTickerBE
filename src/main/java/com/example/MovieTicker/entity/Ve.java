@@ -13,16 +13,15 @@ import lombok.*;
 @Builder
 @Table(name = "Ve")
 public class Ve {
-@Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long maVe;
+    @Id
+    private String maVe;
 
     @ManyToOne
     @JoinColumn(name = "maHD", nullable = false)
     private HoaDon hoaDon;
 
     @ManyToOne
-    @JoinColumn(name = "maUser", nullable = false)
+    @JoinColumn(name = "maUser", nullable = true)
     private User user;
 
     @ManyToOne
@@ -45,4 +44,19 @@ public class Ve {
 
     @OneToMany(mappedBy = "ve")
     private List<VeKhuyenMai> khuyenMais;
+
+    @PrePersist
+    protected void onCreate() {
+        this.ngayDat = LocalDateTime.now();
+        if(this.thanhTien == null) {
+            this.thanhTien = 0.0;
+        }
+        if(maVe == null || maVe.isEmpty()) {
+            this.maVe = generateMaVe();
+        }
+    }
+
+    private String generateMaVe() {
+        return "VE-" + System.currentTimeMillis() + (int)(Math.random() * 1000);
+    }
 }

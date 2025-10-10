@@ -2,6 +2,9 @@ package com.example.MovieTicker.service;
 
 import com.example.MovieTicker.config.MomoAPI;
 import com.example.MovieTicker.config.PaymentConfig;
+import com.example.MovieTicker.entity.HoaDon;
+import com.example.MovieTicker.entity.Ve;
+import com.example.MovieTicker.repository.HoaDonRepository;
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
 import com.example.MovieTicker.request.PaymentRequest;
@@ -39,6 +42,9 @@ public class HoaDonService {
     private String notifyUrl;
     @Value("${momo.requestType}")
     private String requestType;
+
+    @Autowired
+    private HoaDonRepository hoaDonRepository;
 
     @Autowired
     private MomoAPI momoAPI;
@@ -238,5 +244,18 @@ public class HoaDonService {
         in.close();
         System.out.println(response.toString());
         return response.toString();
+    }
+
+    public HoaDon getHoaDonByVeList(List<Ve> ticketList) {
+        if (ticketList == null || ticketList.isEmpty()) {
+            throw new RuntimeException("Danh sách vé trống");
+        }
+        String maHD = ticketList.get(0).getHoaDon().getMaHD();
+        Optional<HoaDon> hoaDonOpt = hoaDonRepository.findById(maHD);
+        if (hoaDonOpt.isPresent()) {
+            return hoaDonOpt.get();
+        } else {
+            throw new RuntimeException("Không tìm thấy hóa đơn với mã: " + maHD);
+        }
     }
 }

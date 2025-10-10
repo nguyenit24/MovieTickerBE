@@ -5,32 +5,22 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "Ve_KhuyenMai")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "ve_khuyen_mai")
+@Data
 public class VeKhuyenMai {
-
     @EmbeddedId
     private VeKhuyenMaiId id;
 
     @ManyToOne
-    @MapsId("maVe")
-    @JoinColumn(name = "MaVe")
+    @MapsId("maVe")  // Tên phải trùng với tên field trong VeKhuyenMaiId
+    @JoinColumn(name = "ma_ve")  // Sửa thành "ma_ve" chữ thường
     private Ve ve;
 
     @ManyToOne
-    @MapsId("maKm")
-    @JoinColumn(name = "maKm")
+    @MapsId("maKm")  // Tên phải trùng với tên field trong VeKhuyenMaiId
+    @JoinColumn(name = "ma_km")  // Đảm bảo đúng tên cột trong database
     private KhuyenMai khuyenMai;
 
-    @Column(name = "GiaTriGiam", nullable = false)
-    private Double giaTriGiam;
-
-    @Column(name = "PhanTramGiam", nullable = false)
-    private Double phanTramGiam;
-
-    @Column(name = "NgayApDung", nullable = false)
+    @Column(name = "ngay_ap_dung")
     private LocalDate ngayApDung;
 }

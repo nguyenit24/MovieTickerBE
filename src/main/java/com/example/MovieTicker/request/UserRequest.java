@@ -1,8 +1,6 @@
 package com.example.MovieTicker.request;
 
 import com.example.MovieTicker.entity.TaiKhoan;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
