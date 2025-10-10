@@ -6,6 +6,8 @@ import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.CreateMomoResponse;
 import com.example.MovieTicker.service.HoaDonService;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,26 +70,46 @@ public class HoaDonController {
         );
     }
 
-    @GetMapping("/vn_pay/refund")
+        /*
+        Thông số mẫu
+      {
+            "amount": 200000,
+            "transId": "15197974",
+            "transDate": "20251010142421",
+            "orderId": "123567",
+            "transType": "02"
+        }
+        "02": Hoàn toàn bộ
+        "03": Hoàn một phần
+     */
+    @PostMapping("/vn_pay/refund")
     public ApiResponse<?> getPaymentRefundVnPay(
             @RequestBody PaymentRequest paymentRequest,
-            HttpServletRequest request,
-            HttpServletResponse response
+            HttpServletRequest request
     ) throws IOException {
         String paymentUrl = invoiceService.refundVnPay(paymentRequest, request);
-        try {
+        JsonObject response = JsonParser.parseString(paymentUrl).getAsJsonObject();
+        String responseCode = response.get("vnp_ResponseCode").getAsString();
+        String message = response.get("vnp_Message").getAsString();
+        if (responseCode.equals("00")) {
             return new ApiResponse<>(
-                    HttpStatus.CREATED.value(),
+                    HttpStatus.OK.value(),
                     "Hoan tien thanh cong",
-                    paymentUrl
-            );
-        } catch (Exception e) {
-            return new ApiResponse<>(
-                    HttpStatus.NOT_FOUND.value(),
-                    "Hoan tien that bai",
-                    e.getMessage()
+                    message
             );
         }
+        else if (responseCode.equals("94")) {
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Hoan tien that bai",
+                    "Hoa don da hoan tien truoc do"
+            );
+        }
+        return  new ApiResponse<>(
+                HttpStatus.NOT_FOUND.value(),
+                "Hoan tien that bai",
+                message
+        );
     }
 
     @PostMapping("/momo/create")
@@ -132,6 +154,36 @@ public class HoaDonController {
                 HttpStatus.NOT_FOUND.value(),
                 "Thanh toan that bai",
                 null
+        );
+    }
+
+    /*
+        Thông số mẫu
+        {
+          "amount": 200000,
+          "requestId": "268cae90-1bd2-466c-98ed-2159f82c8fde",
+          "transId": "4590889874",
+          "transDate": "20251010142421"
+        }
+     */
+
+    @PostMapping("/momo/refund")
+    public ApiResponse<?> getPaymentRefundMomo(
+            @RequestBody PaymentRequest paymentRequest,
+            HttpServletRequest request
+    ) throws IOException {
+        CreateMomoResponse response = invoiceService.refundMomo(paymentRequest);
+        if (response.getResultCode() == 0) {
+            return new  ApiResponse<> (
+                    HttpStatus.OK.value(),
+                    "Hoan tien thanh cong",
+                    response.getMessage()
+                    );
+        }
+        return new ApiResponse<>(
+                HttpStatus.NO_CONTENT.value(),
+                "Hoan tien that bai",
+                response.getMessage()
         );
     }
 }

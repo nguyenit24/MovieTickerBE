@@ -18,4 +18,5 @@ public class CreateMomoRefundRequest {
     private String transId;
     private  String lang;
     private String description;
+    private String signature;
 }
