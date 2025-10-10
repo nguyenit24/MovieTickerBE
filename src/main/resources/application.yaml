@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/movie
     username: root
-    password: 1234
+    password: 123456
   jpa:
     hibernate:
       ddl-auto: update
@@ -30,4 +30,11 @@ springdoc:
     path: /api-docs
 
 
-
+momo:
+  partnerCode : MOMO
+  accessKey : F8BBA842ECF85
+  secretKey : K951B6PE1waDMi640xX08PD3vg6EkVlz
+  endpoint : https://test-payment.momo.vn/v2/gateway/api
+  returnUrl : http://localhost:8080/momo/return
+  ipn-url : http://localhost:8080/api/mom/ipn-handler
+  requestType : captureWallet
