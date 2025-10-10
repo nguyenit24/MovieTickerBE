@@ -26,27 +26,39 @@ public class HoaDonController {
     private HoaDonService invoiceService;
 
     @PostMapping("/vn_pay/create")
-    public ApiResponse<?> createPayment(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public ApiResponse<?> createPaymentVnPay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         String paymentUrl = invoiceService.createVnPayRequest(paymentRequest, request, response);
-        return new ApiResponse<>(
-                HttpStatus.CREATED.value(),
-                "Tao thanh toan thanh cong",
-                paymentUrl
-        );
+        try {
+            return new ApiResponse<>(
+                    HttpStatus.CREATED.value(),
+                    "Tao thanh toan thanh cong",
+                    paymentUrl
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Tao thanh toan that bai",
+                    e.getMessage()
+            );
+        }
+
     }
 
     @GetMapping("/vn_pay/payment_info")
-    public ApiResponse<?> getPaymentInfo(
-            @RequestParam("vnp_Amount") String amount,
-            @RequestParam("vnp_BankCode") String bankCode,
-            @RequestParam("vnp_OrderInfo") String orderInfo,
-            @RequestParam("vnp_ResponseCode") String response_Code
+    public ApiResponse<?> getPaymentInfoVnPay(
+            @RequestParam("vnp_TransactionNo") String transNo,
+            @RequestParam("vnp_PayDate") String transDate,
+            @RequestParam("vnp_ResponseCode") String responseCode
     ) throws IOException {
-        if (response_Code.equals("00")) {
+        if (responseCode.equals("00")) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("transactionNo", transNo);
+            data.put("transactionDate", transDate);
+            data.put("responseCode", responseCode);
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Tao thanh toan thanh cong",
-                    null
+                    data
             );
         }
         return new ApiResponse<>(
@@ -56,24 +68,69 @@ public class HoaDonController {
         );
     }
 
-    @PostMapping("/momo/create")
-    public CreateMomoResponse createMomo(@RequestBody PaymentRequest paymentRequest) {
-        return invoiceService.createMoMoQR(paymentRequest);
-    }
-
-    @GetMapping("/ipn_handler")
-    public ApiResponse<?> ipnHandler(@RequestParam Map<String, String> request) {
-        int resultCode = Integer.parseInt(request.get("resultCode"));
-        if (resultCode == 0) {
+    @GetMapping("/vn_pay/refund")
+    public ApiResponse<?> getPaymentRefundVnPay(
+            @RequestBody PaymentRequest paymentRequest,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) throws IOException {
+        String paymentUrl = invoiceService.refundVnPay(paymentRequest, request);
+        try {
             return new ApiResponse<>(
                     HttpStatus.CREATED.value(),
-                    "Thanh cong",
-                    null
+                    "Hoan tien thanh cong",
+                    paymentUrl
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Hoan tien that bai",
+                    e.getMessage()
+            );
+        }
+    }
+
+    @PostMapping("/momo/create")
+    public ApiResponse<?> createMomo(@RequestBody PaymentRequest paymentRequest) {
+        try {
+            return new ApiResponse<>(
+                    HttpStatus.CREATED.value(),
+                    "Tao thanh toan thanh cong",
+                    invoiceService.createMoMoQR(paymentRequest)
+            );
+        }
+        catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Tao thanh toan that bai",
+                    e.getMessage()
+            );
+        }
+
+    }
+
+    @GetMapping("/momo/payment_info")
+    public ApiResponse<?> getPaymentInfoMomo(
+            @RequestParam("transId") String transNo,
+            @RequestParam("responseTime") String transDate,
+            @RequestParam("requestId") String requestId,
+            @RequestParam("resultCode") Integer resultCode
+    ) throws IOException {
+        if (resultCode == 0) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("transactionNo", transNo);
+            data.put("transactionDate", transDate);
+            data.put("requestId", requestId);
+            data.put("responseCode", resultCode);
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Thanh toan thanh cong",
+                    data
             );
         }
         return new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
-                "Co loi xay ra",
+                "Thanh toan that bai",
                 null
         );
     }

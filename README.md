@@ -29,7 +29,7 @@
 - Mỗi chức năng nên tạo **nhánh riêng**  
 - Code chỉnh sửa nên thực hiện trên nhánh `develop`  
   - Sau khi hoàn thành → tạo `release` → merge vào `main`
-
+- Danh sách api swagger: http://localhost:8080/swagger-ui/index.html
 ---
 
 ## 📊 Quy trình làm việc cơ bản

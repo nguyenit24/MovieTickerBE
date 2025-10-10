@@ -12,6 +12,7 @@ public class PaymentRequest {
     private String orderId;
     private String requestId;
     private String transId;
+    private String transDate;
 
     public PaymentRequest(long amount, String orderId) {
         this.amount = amount;

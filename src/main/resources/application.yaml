@@ -35,6 +35,6 @@ momo:
   accessKey : F8BBA842ECF85
   secretKey : K951B6PE1waDMi640xX08PD3vg6EkVlz
   endpoint : https://test-payment.momo.vn/v2/gateway/api
-  returnUrl : http://localhost:8080/momo/return
+  returnUrl : http://localhost:8080/api/payment/momo/payment_info
   ipn-url : http://localhost:8080/api/mom/ipn-handler
-  requestType : captureWallet
+  requestType : payWithMethod
