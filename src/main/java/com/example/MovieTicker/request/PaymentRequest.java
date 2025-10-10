@@ -10,4 +10,11 @@ import lombok.NoArgsConstructor;
 public class PaymentRequest {
     private long amount;
     private String orderId;
+    private String requestId;
+    private String transId;
+
+    public PaymentRequest(long amount, String orderId) {
+        this.amount = amount;
+        this.orderId = orderId;
+    }
 }

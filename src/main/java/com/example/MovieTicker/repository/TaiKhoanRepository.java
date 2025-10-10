@@ -11,6 +11,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface TaiKhoanRepository extends JpaRepository<TaiKhoan,Integer> {
+public interface TaiKhoanRepository extends JpaRepository<TaiKhoan,String> {
     Optional<TaiKhoan> findByUser_HoTenOrUser_Sdt(String hoTen, String sdt);
 }

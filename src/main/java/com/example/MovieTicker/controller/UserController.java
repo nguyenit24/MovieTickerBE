@@ -65,7 +65,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ApiResponse<?> update(@PathVariable String id, @RequestBody TaiKhoan request) {
         try {
-            Optional<TaiKhoan> taiKhoan = userService.findById(Integer.parseInt(id));
+            Optional<TaiKhoan> taiKhoan = userService.findById(id);
             request.setTenDangNhap(taiKhoan.get().getTenDangNhap());
             userService.save(request);
             return ApiResponse.builder()
@@ -84,8 +84,8 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ApiResponse<?> delete(@PathVariable String id) {
         try {
-            Optional<TaiKhoan> taiKhoan = userService.findById(Integer.parseInt(id));
-            userService.deleteById(Integer.parseInt(id));
+            Optional<TaiKhoan> taiKhoan = userService.findById(id);
+            userService.deleteById(id);
             return ApiResponse.builder()
                     .code(HttpStatus.OK.value())
                     .message("Xóa user thành công")

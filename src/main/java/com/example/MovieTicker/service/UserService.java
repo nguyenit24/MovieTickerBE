@@ -16,7 +16,7 @@ public class UserService {
     @Autowired
     TaiKhoanRepository taiKhoanRepository;
 
-    public void deleteById(Integer integer) {
+    public void deleteById(String integer) {
         taiKhoanRepository.deleteById(integer);
     }
 
@@ -28,7 +28,7 @@ public class UserService {
         return taiKhoanRepository.count();
     }
 
-    public boolean existsById(Integer integer) {
+    public boolean existsById(String integer) {
         return taiKhoanRepository.existsById(integer);
     }
 
@@ -40,7 +40,7 @@ public class UserService {
         return taiKhoanRepository.save(entity);
     }
 
-    public Optional<TaiKhoan> findById(Integer integer) {
+    public Optional<TaiKhoan> findById(String integer) {
         return taiKhoanRepository.findById(integer);
     }
 }
