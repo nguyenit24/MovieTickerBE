@@ -24,6 +24,17 @@ spring:
             scope:
               - email
               - profile
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: herothaibao99@gmail.com   # <-- THAY BẰNG EMAIL CỦA BẠN
+    password: nzop khsn iycb rdba     # <-- THAY BẰNG MẬT KHẨU ỨNG DỤNG
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 springdoc:
   api-docs:
@@ -38,3 +49,7 @@ momo:
   returnUrl : http://localhost:8080/api/payment/momo/payment_info
   ipn-url : http://localhost:8080/api/mom/ipn-handler
   requestType : payWithMethod
+jwt:
+  Key: "u7S0lNZzkdu0yiM04aw53nlCjFjENGUfQEPXuUQwBnTirTkZaM6CQqi41vU5hL3V"
+frontend:
+  base-url: http://localhost:5173
