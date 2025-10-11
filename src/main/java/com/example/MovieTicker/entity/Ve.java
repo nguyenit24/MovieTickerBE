@@ -38,6 +38,10 @@ public class Ve {
     @Column(nullable = false)
     private Double thanhTien;
 
+    @Column(name = "trang_thai", nullable = false)
+    @Builder.Default
+    private String trangThai = "PROCESSING";
+
     // 1 Vé có nhiều ChiTietDichVuVe
     @OneToMany(mappedBy = "ve", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ChiTietDichVuVe> chiTietDichVuVes;

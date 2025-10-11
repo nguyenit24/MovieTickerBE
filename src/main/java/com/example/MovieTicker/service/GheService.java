@@ -3,15 +3,20 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.entity.Ghe;
 import com.example.MovieTicker.entity.LoaiGhe;
 import com.example.MovieTicker.entity.PhongChieu;
+import com.example.MovieTicker.entity.Ve;
+import com.example.MovieTicker.enums.TicketStatus;
 import com.example.MovieTicker.repository.GheRepository;
 import com.example.MovieTicker.repository.LoaiGheRepository;
 import com.example.MovieTicker.repository.PhongChieuRepository;
+import com.example.MovieTicker.repository.VeRepository;
 import com.example.MovieTicker.request.GheRequest;
 
 import jakarta.annotation.PostConstruct;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +31,9 @@ public class GheService {
     
     @Autowired
     private PhongChieuRepository phongChieuRepository;
+    
+    @Autowired
+    private VeRepository veRepository;
 
     @PostConstruct
     public void seedGhe() {
@@ -86,6 +94,19 @@ public class GheService {
         }
         
         return gheRepository.save(ghe);
+    }
+
+    public List<Ghe> getBooking(String maSuatChieu) {
+        // Lấy tất cả vé có trạng thái PAID cho suất chiếu này
+        List<Ve> allTickets = veRepository.findBySuatChieuMaSuatChieu(maSuatChieu);
+        allTickets.forEach(ve -> {
+            System.out.println("Ve ID: " + ve.getMaVe() + ", Ghe: " + ve.getGhe().getTenGhe() + ", Trang Thai: " + ve.getTrangThai());
+        });
+        // Filter chỉ lấy vé đã thanh toán và extract ra ghế
+        return allTickets.stream()
+                .filter(ve -> TicketStatus.PAID.getCode().equals(ve.getTrangThai()))
+                .map(Ve::getGhe)
+                .collect(Collectors.toList());
     }
     
 }

@@ -4,11 +4,17 @@ import com.example.MovieTicker.config.MomoAPI;
 import com.example.MovieTicker.config.PaymentConfig;
 import com.example.MovieTicker.entity.HoaDon;
 import com.example.MovieTicker.entity.Ve;
+import com.example.MovieTicker.entity.ChiTietDichVuVe;
+import com.example.MovieTicker.enums.InvoiceStatus;
+import com.example.MovieTicker.enums.TicketStatus;
 import com.example.MovieTicker.repository.HoaDonRepository;
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
 import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.CreateMomoResponse;
+import com.example.MovieTicker.response.HoaDonResponse;
+import com.example.MovieTicker.response.VeResponse;
+import com.example.MovieTicker.response.DichVuResponse;
 import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +32,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -260,5 +267,249 @@ public class HoaDonService {
         } else {
             throw new RuntimeException("Không tìm thấy hóa đơn với mã: " + maHD);
         }
+    }
+
+    public HoaDon getHoaDonByMaHD(String maHD) {
+        Optional<HoaDon> hoaDonOpt = hoaDonRepository.findById(maHD);
+        if (hoaDonOpt.isPresent()) {
+            return hoaDonOpt.get();
+        } else {
+            throw new RuntimeException("Không tìm thấy hóa đơn với mã: " + maHD);
+        }
+    }
+
+    public void updatePaymentStatus(String orderId, String transactionNo, String transactionDate, String responseCode) {
+        try {
+            HoaDon hoaDon = getHoaDonByMaHD(orderId);
+            
+            // Kiểm tra hóa đơn có hết hạn không (10 phút)
+            if (isInvoiceExpired(hoaDon)) {
+                throw new RuntimeException("Hóa đơn đã hết hạn thanh toán (quá 10 phút). Vui lòng tạo đơn hàng mới.");
+            }
+            
+            // Cập nhật thông tin giao dịch
+            hoaDon.setTransactionNo(transactionNo);
+            hoaDon.setTransactionDate(transactionDate);
+            hoaDon.setResponseCode(responseCode);
+            
+            // Cập nhật trạng thái dựa trên response code
+            if ("00".equals(responseCode) || "0".equals(responseCode)) {
+                hoaDon.setTrangThai(InvoiceStatus.PAID.getCode());
+                
+                // Cập nhật trạng thái tất cả vé trong hóa đơn
+                if (hoaDon.getVes() != null) {
+                    for (Ve ve : hoaDon.getVes()) {
+                        ve.setTrangThai(TicketStatus.PAID.getCode());
+                    }
+                }
+            } else {
+                hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
+                
+                // Cập nhật trạng thái vé thành CANCELLED
+                if (hoaDon.getVes() != null) {
+                    for (Ve ve : hoaDon.getVes()) {
+                        ve.setTrangThai(TicketStatus.CANCELLED.getCode());
+                    }
+                }
+            }
+            
+            hoaDonRepository.save(hoaDon);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi cập nhật trạng thái thanh toán: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Kiểm tra hóa đơn có hết hạn không (10 phút)
+     */
+    public boolean isInvoiceExpired(HoaDon hoaDon) {
+        if (hoaDon == null || hoaDon.getNgayLap() == null) {
+            return true;
+        }
+        
+        LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(10);
+        return hoaDon.getNgayLap().isBefore(expiredTime);
+    }
+    
+    /**
+     * Kiểm tra hóa đơn có thể thanh toán không
+     */
+    public void validateInvoiceForPayment(String maHD) {
+        HoaDon hoaDon = getHoaDonByMaHD(maHD);
+        
+        // Kiểm tra trạng thái hiện tại
+        if (!InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai())) {
+            throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
+        }
+        
+        // Kiểm tra hết hạn
+        if (isInvoiceExpired(hoaDon)) {
+            // Tự động cập nhật trạng thái thành EXPIRED
+            hoaDon.setTrangThai(InvoiceStatus.EXPIRED.getCode());
+            if (hoaDon.getVes() != null) {
+                for (Ve ve : hoaDon.getVes()) {
+                    ve.setTrangThai(TicketStatus.EXPIRED.getCode());
+                }
+            }
+            hoaDonRepository.save(hoaDon);
+            
+            throw new RuntimeException("Hóa đơn đã hết hạn thanh toán (quá 10 phút). Vui lòng tạo đơn hàng mới.");
+        }
+    }
+    
+    /**
+     * Hủy hóa đơn manual khi user out ra không thanh toán
+     */
+    public void cancelInvoiceManual(String maHD) {
+        try {
+            HoaDon hoaDon = getHoaDonByMaHD(maHD);
+            
+            // Chỉ cho phép hủy hóa đơn đang PROCESSING
+            if (!InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai())) {
+                throw new RuntimeException("Không thể hủy hóa đơn. Trạng thái hiện tại: " + hoaDon.getTrangThai());
+            }
+            
+            // Cập nhật trạng thái hóa đơn thành CANCELLED
+            hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
+            
+            // Cập nhật trạng thái tất cả vé trong hóa đơn thành CANCELLED
+            if (hoaDon.getVes() != null) {
+                for (Ve ve : hoaDon.getVes()) {
+                    ve.setTrangThai(TicketStatus.CANCELLED.getCode());
+                }
+            }
+            
+            hoaDonRepository.save(hoaDon);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi hủy hóa đơn: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Kiểm tra trạng thái hóa đơn hiện tại
+     */
+    public String getInvoiceStatus(String maHD) {
+        HoaDon hoaDon = getHoaDonByMaHD(maHD);
+        
+        // Kiểm tra xem có hết hạn không
+        if (InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai()) && isInvoiceExpired(hoaDon)) {
+            // Tự động cập nhật trạng thái thành EXPIRED
+            hoaDon.setTrangThai(InvoiceStatus.EXPIRED.getCode());
+            if (hoaDon.getVes() != null) {
+                for (Ve ve : hoaDon.getVes()) {
+                    ve.setTrangThai(TicketStatus.EXPIRED.getCode());
+                }
+            }
+            hoaDonRepository.save(hoaDon);
+            return InvoiceStatus.EXPIRED.getCode();
+        }
+        
+        return hoaDon.getTrangThai();
+    }
+
+    public List<HoaDon> getAllHoaDon() {
+        return hoaDonRepository.findAll();
+    }
+
+    public HoaDonResponse getHoaDonResponseByMaHD(String maHD) {
+        Optional<HoaDon> hoaDonOpt = hoaDonRepository.findById(maHD);
+        if (hoaDonOpt.isPresent()) {
+            HoaDon hoaDon = hoaDonOpt.get();
+            return convertToHoaDonResponse(hoaDon);
+        } else {
+            throw new RuntimeException("Không tìm thấy hóa đơn với mã: " + maHD);
+        }
+    }
+    
+    /**
+     * Convert HoaDon entity sang HoaDonResponse với đầy đủ thông tin
+     */
+    private HoaDonResponse convertToHoaDonResponse(HoaDon hoaDon) {
+        // Convert danh sách vé
+        List<VeResponse> danhSachVeResponse = new ArrayList<>();
+        if (hoaDon.getVes() != null) {
+            for (Ve ve : hoaDon.getVes()) {
+                // Parse tenGhe để lấy hàng và số
+                String tenGhe = ve.getGhe().getTenGhe();
+                String hangGhe = tenGhe.substring(0, 1); // A, B, C...
+                String soGhe = tenGhe.substring(1); // 01, 02, 03...
+                
+                VeResponse veResponse = VeResponse.builder()
+                    .maVe(ve.getMaVe())
+                    .tenPhim(ve.getSuatChieu().getPhim().getTenPhim())
+                    .tenPhongChieu(ve.getSuatChieu().getPhongChieu().getTenPhong())
+                    .tenGhe(tenGhe)
+                    .hangGhe(hangGhe)
+                    .soGhe(Integer.parseInt(soGhe))
+                    .loaiGhe(ve.getGhe().getLoaiGhe().getTenLoaiGhe())
+                    .giaGhe((double) ve.getGhe().getLoaiGhe().getPhuThu())
+                    .ngayChieu(ve.getSuatChieu().getThoiGianBatDau())
+                    .thoiGianChieu(ve.getSuatChieu().getThoiGianBatDau())
+                    .ngayDat(ve.getNgayDat())
+                    .thanhTien(ve.getThanhTien())
+                    .trangThai(ve.getTrangThai())
+                    .maHoaDon(hoaDon.getMaHD())
+                    .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
+                    .build();
+                danhSachVeResponse.add(veResponse);
+            }
+        }
+        
+        // Convert danh sách dịch vụ đi kèm từ tất cả các vé
+        List<DichVuResponse> danhSachDichVuResponse = new ArrayList<>();
+        if (hoaDon.getVes() != null) {
+            for (Ve ve : hoaDon.getVes()) {
+                if (ve.getChiTietDichVuVes() != null) {
+                    for (ChiTietDichVuVe chiTiet : ve.getChiTietDichVuVes()) {
+                        DichVuResponse dichVuResponse = DichVuResponse.builder()
+                            .maDichVu(chiTiet.getDichVuDiKem().getMaDv().toString())
+                            .tenDichVu(chiTiet.getDichVuDiKem().getTenDv())
+                            .giaDichVu(chiTiet.getDichVuDiKem().getDonGia())
+                            .soLuong(chiTiet.getSoLuong())
+                            .thanhTien(chiTiet.getDichVuDiKem().getDonGia() * chiTiet.getSoLuong())
+                            .moTa(chiTiet.getDichVuDiKem().getMoTa())
+                            .build();
+                        danhSachDichVuResponse.add(dichVuResponse);
+                    }
+                }
+            }
+        }
+        
+        // Tính toán tổng tiền
+        double tongTienVe = danhSachVeResponse.stream()
+            .mapToDouble(VeResponse::getThanhTien)
+            .sum();
+        double tongTienDichVu = danhSachDichVuResponse.stream()
+            .mapToDouble(DichVuResponse::getThanhTien)
+            .sum();
+        
+        // Kiểm tra hết hạn
+        boolean isExpired = isInvoiceExpired(hoaDon);
+        LocalDateTime expiredAt = hoaDon.getNgayLap().plusMinutes(10);
+        
+        // Build response
+        return HoaDonResponse.builder()
+            .maHD(hoaDon.getMaHD())
+            .ngayLap(hoaDon.getNgayLap())
+            .tongTien(hoaDon.getTongTien())
+            .tongTienVe(tongTienVe)
+            .tongTienDichVu(tongTienDichVu)
+            .phuongThucThanhToan(hoaDon.getPhuongThucThanhToan())
+            .trangThai(hoaDon.getTrangThai())
+            .maGiaoDich(hoaDon.getMaGiaoDich())
+            .transactionNo(hoaDon.getTransactionNo())
+            .transactionDate(hoaDon.getTransactionDate())
+            .responseCode(hoaDon.getResponseCode())
+            .ghiChu(hoaDon.getGhiChu())
+            .danhSachVe(danhSachVeResponse)
+            .danhSachDichVu(danhSachDichVuResponse)
+            .tenNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : null)
+            .emailNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getEmail() : null)
+            .soDienThoai(hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : null)
+            .soLuongVe(danhSachVeResponse.size())
+            .expiredAt(expiredAt)
+            .isExpired(isExpired)
+            .build();
     }
 }

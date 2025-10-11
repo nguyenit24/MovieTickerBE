@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
@@ -215,5 +213,25 @@ public class KhuyenMaiController {
                     .build());
         }
     }
+
+    @GetMapping("/validate/{maKhuyenMai}")
+    public ApiResponse<String> getMethodName(@PathVariable String maKhuyenMai) {
+        List<KhuyenMai> validPromotions = khuyenMaiService.getValidPromotions();
+        boolean isValid = validPromotions.stream()
+            .anyMatch(km -> km.getMaKm().equals(maKhuyenMai));
+        if (isValid) {
+            return ApiResponse.<String>builder()
+                .code(200)
+                .message("Mã khuyến mãi hợp lệ")
+                .data(maKhuyenMai)
+                .build();
+        } else {
+            return ApiResponse.<String>builder()
+                .code(404)
+                .message("Mã khuyến mãi không hợp lệ hoặc đã hết hạn")
+                .build();
+        }
+    }
+    
     
 }
