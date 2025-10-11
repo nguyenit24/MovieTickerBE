@@ -52,3 +52,5 @@ momo:
 
 jwt:
   Key: "u7S0lNZzkdu0yiM04aw53nlCjFjENGUfQEPXuUQwBnTirTkZaM6CQqi41vU5hL3V"
+frontend:
+  base-url: http://localhost:5173

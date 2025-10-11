@@ -1,8 +1,6 @@
 package com.example.MovieTicker.controller;
 
-import com.example.MovieTicker.request.AuthenticateRequest;
-import com.example.MovieTicker.request.IntrospectRequest;
-import com.example.MovieTicker.request.RegistrationRequest;
+import com.example.MovieTicker.request.*;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.AuthenticateResponse;
 import com.example.MovieTicker.response.IntrospectResponse;
@@ -58,4 +56,28 @@ public class AuthenticationController {
         var result = authenticateService.introspect(request);
         return ApiResponse.<IntrospectResponse>builder().data(result).build();
     }
+    @PostMapping("/refresh")
+    public ApiResponse<AuthenticateResponse> refreshToken(@RequestBody IntrospectRequest request)
+            throws ParseException, JOSEException {
+        var result = authenticateService.refreshToken(request);
+        return ApiResponse.<AuthenticateResponse>builder()
+                .data(result)
+                .build();
+    }
+    @PostMapping("/forgot-password")
+    public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authenticateService.forgotPassword(request);
+        return ApiResponse.<String>builder()
+                .message("OTP has been sent to your email.")
+                .build();
+    }
+
+    @PostMapping("/reset-password")
+    public ApiResponse<String> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        authenticateService.resetPassword(request);
+        return ApiResponse.<String>builder()
+                .message("Password has been reset successfully.")
+                .build();
+    }
+
 }

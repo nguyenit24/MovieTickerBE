@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -25,7 +26,10 @@ public class WebSecurityConfig {
             "/api/phim/**", // Cho phép GET phim
             "/api/theloai/**", // Cho phép GET thể loại
             "/swagger-ui/**", // Cho phép truy cập Swagger UI
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/api/auth/refresh",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password"
     };
 
     @Autowired
@@ -40,7 +44,7 @@ public class WebSecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable());
-
+        httpSecurity.cors(Customizer.withDefaults());
         httpSecurity
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
