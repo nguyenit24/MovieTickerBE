@@ -64,17 +64,6 @@ public class VeService {
         if (gheList.size() != request.getMaGheList().size()) {
             throw new RuntimeException("Một hoặc nhiều ghế không tồn tại trong hệ thống");
         }
-        
-        // Kiểm tra ghế đã được đặt và thanh toán chưa
-        List<Ve> paidTickets = veRepository.findTicketsBySuatChieuAndSeatsAndStatus(
-            request.getMaSuatChieu(), 
-            request.getMaGheList(), 
-            TicketStatus.PAID.getCode()
-        );
-        if (!paidTickets.isEmpty()) {
-            throw new RuntimeException("Một hoặc nhiều ghế đã được đặt và thanh toán cho suất chiếu này");
-        }
-        
         // Kiểm tra và xóa các vé processing đã hết hạn (quá 10 phút)
         LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(10);
         List<Ve> expiredTickets = veRepository.findTicketsBySuatChieuAndSeatsAndStatusAndTime(
@@ -90,6 +79,25 @@ public class VeService {
                 veRepository.save(expiredTicket);
             }
         }
+        // Kiểm tra ghế đã được đặt và thanh toán chưa
+        List<Ve> paidTickets = veRepository.findTicketsBySuatChieuAndSeatsAndStatus(
+            request.getMaSuatChieu(), 
+            request.getMaGheList(), 
+            TicketStatus.PAID.getCode()
+        );
+        if (!paidTickets.isEmpty()) {
+            throw new RuntimeException("Đã có người đặt một hoặc nhiều ghế bạn chọn. Vui lòng chọn ghế khác.");
+        }
+        List<Ve> paidTickets2 = veRepository.findTicketsBySuatChieuAndSeatsAndStatus(
+            request.getMaSuatChieu(), 
+            request.getMaGheList(), 
+            TicketStatus.PROCESSING.getCode()
+        );
+        if (!paidTickets2.isEmpty()) {
+            throw new RuntimeException("Đã có người đặt một hoặc nhiều ghế bạn chọn. Vui lòng chọn ghế khác.");
+        }
+        
+        
         
         // Kiểm tra khuyến mãi nếu có
         KhuyenMai khuyenMai = null;
