@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,12 @@ public class VeService {
     private MomoAPI momoAPI;
     @Autowired
     private HoaDonRepository hoaDonRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private QRCodeService qrCodeService;
+    @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
 
     @Transactional
     public HoaDonResponse createTickets(TicketBookingRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
@@ -126,7 +134,11 @@ public class VeService {
         hoaDon.setNgayLap(LocalDateTime.now());
         hoaDon.setTrangThai(InvoiceStatus.PROCESSING.getCode());
         hoaDon.setMaGiaoDich("GD" + System.currentTimeMillis()); // Mã giao dịch tạm thời
-        hoaDon.setUser(null); // Set user nếu có thông tin tài khoản
+        
+        // Lấy user từ token hiện tại và set vào hóa đơn
+        User currentUser = getCurrentUser();
+        hoaDon.setUser(currentUser);
+        
         hoaDon = hoaDonRepository.save(hoaDon);
         
         // Tạo vé cho từng ghế
@@ -224,7 +236,31 @@ public class VeService {
         ve.setUser(null);
         ve.setTrangThai(TicketStatus.PROCESSING.getCode());
 
-        return veRepository.save(ve);
+        // Lưu vé trước để có mã vé
+        ve = veRepository.save(ve);
+        
+        // Tạo QR code cho vé
+        try {
+            String qrContent = qrCodeService.createTicketQRContent(
+                ve.getMaVe(),
+                suatChieu.getPhim().getTenPhim(),
+                suatChieu.getPhongChieu().getTenPhong(),
+                ghe.getTenGhe(),
+                suatChieu.getThoiGianBatDau().toString()
+            );
+            
+            String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
+            ve.setQrCodeUrl(qrCodeUrl);
+            
+            // Cập nhật lại vé với QR code URL
+            ve = veRepository.save(ve);
+            
+        } catch (Exception e) {
+            // Log lỗi nhưng không dừng việc tạo vé
+            System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
+        }
+
+        return ve;
     }
     
     private double processAdditionalServices(Ve ve, List<DichVuRequest> dichVuList) {
@@ -297,6 +333,25 @@ public class VeService {
             .thanhTien(ve.getThanhTien())
             .trangThai(ve.getTrangThai())
             .maHoaDon(ve.getHoaDon().getMaHD())
+            .qrCodeUrl(ve.getQrCodeUrl()) // Thêm QR code URL vào response
             .build();
+    }
+
+    /**
+     * Lấy user hiện tại từ Security Context (JWT token)
+     * @return User hiện tại hoặc null nếu không có authentication
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName(); // Đây là tenDangNhap từ JWT
+            
+            // Tìm TaiKhoan theo tenDangNhap
+            TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
+            if (taiKhoan != null) {
+                return taiKhoan.getUser();
+            }
+        }
+        return null;
     }
 }

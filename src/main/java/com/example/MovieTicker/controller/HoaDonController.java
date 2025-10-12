@@ -281,10 +281,7 @@ public class HoaDonController {
         }
     }
     
-    /**
-     * API kiểm tra trạng thái hóa đơn hiện tại
-     */
-   
+ 
 
     @GetMapping("/all")
     public ApiResponse<?> getAllInvoices() {
@@ -304,9 +301,7 @@ public class HoaDonController {
         }
     }
 
-    /**
-     * API lấy chi tiết hóa đơn đầy đủ bao gồm vé và dịch vụ
-     */
+
     @GetMapping("/detail/{maHD}")
     public ApiResponse<?> getHoaDonDetail(@PathVariable String maHD) {
         try {
@@ -320,6 +315,25 @@ public class HoaDonController {
             return new ApiResponse<>(
                     HttpStatus.NOT_FOUND.value(),
                     "Lỗi khi lấy chi tiết hóa đơn: " + e.getMessage(),
+                    null
+            );
+        }
+    }
+
+   
+    @GetMapping("/my-invoices")
+    public ApiResponse<?> getMyInvoices() {
+        try {
+            List<HoaDonResponse> hoaDonList = invoiceService.getMyInvoices();
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy danh sách hóa đơn của bạn thành công",
+                    hoaDonList
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
                     null
             );
         }

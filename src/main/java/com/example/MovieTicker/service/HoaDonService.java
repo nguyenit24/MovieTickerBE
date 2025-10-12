@@ -3,11 +3,14 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.config.MomoAPI;
 import com.example.MovieTicker.config.PaymentConfig;
 import com.example.MovieTicker.entity.HoaDon;
+import com.example.MovieTicker.entity.User;
+import com.example.MovieTicker.entity.TaiKhoan;
 import com.example.MovieTicker.entity.Ve;
 import com.example.MovieTicker.entity.ChiTietDichVuVe;
 import com.example.MovieTicker.enums.InvoiceStatus;
 import com.example.MovieTicker.enums.TicketStatus;
 import com.example.MovieTicker.repository.HoaDonRepository;
+import com.example.MovieTicker.repository.TaiKhoanRepository;
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
 import com.example.MovieTicker.request.PaymentRequest;
@@ -20,6 +23,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 
@@ -52,6 +57,9 @@ public class HoaDonService {
 
     @Autowired
     private HoaDonRepository hoaDonRepository;
+
+    @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
 
     @Autowired
     private MomoAPI momoAPI;
@@ -451,6 +459,7 @@ public class HoaDonService {
                     .trangThai(ve.getTrangThai())
                     .maHoaDon(hoaDon.getMaHD())
                     .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
+                    .qrCodeUrl(ve.getQrCodeUrl())
                     .build();
                 danhSachVeResponse.add(veResponse);
             }
@@ -511,5 +520,44 @@ public class HoaDonService {
             .expiredAt(expiredAt)
             .isExpired(isExpired)
             .build();
+    }
+
+    /**
+     * Lấy user hiện tại từ Security Context (JWT token)
+     * @return User hiện tại hoặc null nếu không có authentication
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName(); // Đây là tenDangNhap từ JWT
+            
+            // Tìm TaiKhoan theo tenDangNhap
+            TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
+            if (taiKhoan != null) {
+                return taiKhoan.getUser();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lấy danh sách hóa đơn của user hiện tại
+     * @return Danh sách hóa đơn của user
+     */
+    public List<HoaDonResponse> getMyInvoices() {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new RuntimeException("Bạn cần đăng nhập để xem danh sách hóa đơn");
+        }
+
+        List<HoaDon> hoaDonList = hoaDonRepository.findByUserOrderByNgayLapDesc(currentUser);
+        List<HoaDonResponse> responseList = new ArrayList<>();
+
+        for (HoaDon hoaDon : hoaDonList) {
+            HoaDonResponse response = getHoaDonResponseByMaHD(hoaDon.getMaHD());
+            responseList.add(response);
+        }
+
+        return responseList;
     }
 }
