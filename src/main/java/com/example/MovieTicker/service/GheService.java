@@ -39,10 +39,10 @@ public class GheService {
     public void seedGhe() {
         int soHang = 10;
         int soCot = 10;
-    
+
         List<LoaiGhe> loaiGheList = loaiGheRepository.findAll();
         for (int i = 0; i < soHang; i++) {
-            char hang = (char)('A' + i);
+            char hang = (char) ('A' + i);
             for (int j = 1; j <= soCot; j++) {
                 String tenGhe = String.format("%c%02d", hang, j);
                 LoaiGhe loaiGhe;
@@ -70,9 +70,9 @@ public class GheService {
                 }
             }
         }
-        }
+    }
 
-            @PostConstruct
+    @PostConstruct
     public void seedGhePhongVip() {
         Optional<PhongChieu> phongChieuOpt = phongChieuRepository.findById("P3");
         if (phongChieuOpt.isEmpty()) {
