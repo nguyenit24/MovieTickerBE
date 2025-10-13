@@ -31,6 +31,12 @@ public class KhuyenMai {
     @Column(nullable = false)
     private LocalDate ngayKetThuc;
 
+    @Column(nullable = false)
+    private String maCode; // Mã code khuyến mãi
+
+    @Column(nullable = false)
+    private Integer soLuong; // Số lượng mã khuyến mãi có thể sử dụng
+
     @OneToMany(mappedBy = "khuyenMai")
     private List<VeKhuyenMai> ves;
     

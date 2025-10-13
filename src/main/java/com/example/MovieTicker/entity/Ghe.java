@@ -1,7 +1,9 @@
 package com.example.MovieTicker.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +30,6 @@ public class Ghe {
 
     @ManyToOne
     @JoinColumn(name = "MaLoaiGhe")
-    @JsonIgnore
+    @JsonIgnoreProperties("listGhe")
     private LoaiGhe loaiGhe;
 }

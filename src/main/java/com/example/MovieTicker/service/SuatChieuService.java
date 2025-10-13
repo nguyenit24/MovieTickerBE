@@ -25,8 +25,9 @@ public class SuatChieuService {
     private PhongChieuRepository phongChieuRepository;
 
     public SuatChieu createSuatChieu(SuatChieuRequest request) {
+        String maPhim = request.getMaPhim();
         Phim phim = phimRepository.findById(request.getMaPhim())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phim"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phim: " + maPhim));
         PhongChieu phongChieu = phongChieuRepository.findById(request.getMaPhongChieu())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phòng chiếu"));
 
@@ -44,7 +45,7 @@ public class SuatChieuService {
             // Nếu khoảng thời gian giao nhau thì báo lỗi
             boolean isOverlap = !(ketThucMoi.isBefore(batDauCu) || batDauMoi.isAfter(ketThucCu));
             if (isOverlap) {
-                throw new RuntimeException("Suất chiếu bị giao nhau với suất chiếu khác trong cùng phòng (bao gồm thời gian dọn dẹp)!");
+                throw new RuntimeException("Suất chiếu bị giao nhau với suất chiếu khác trong cùng phòng (bao gồm thời gian dọn dẹp)! Phim: " + sc.getPhim().getTenPhim());
             }
         }
 
@@ -60,6 +61,7 @@ public class SuatChieuService {
     public List<SuatChieu> getAllSuatChieu() {
         return suatChieuRepository.findAll();
     }
+
     
     public Page<SuatChieu> getSuatChieuPage(Pageable pageable) {
         return suatChieuRepository.findAll(pageable);

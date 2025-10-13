@@ -26,7 +26,7 @@ public class PhimController {
 
     @GetMapping("/pageable")
     public ApiResponse<Map<String, Object>> getPhimPageable(@RequestParam(defaultValue = "1") int page,
-                               @RequestParam(defaultValue = "5") int size) {
+                               @RequestParam(defaultValue = "8") int size) {
         if (page < 1) page = 1;
         if (size < 1) size = 5;
         Pageable pageable = PageRequest.of(page - 1, size);
@@ -121,12 +121,19 @@ public class PhimController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<Phim>> searchPhim(@RequestParam String keyword) {
-        List<Phim> phimList = phimService.searchPhimByTen(keyword);
-        return ApiResponse.<List<Phim>>builder()
+    public ApiResponse<Map<String, Object>> searchPhim(@RequestParam String keyword, @RequestParam(defaultValue = "1") int page,
+                                              @RequestParam(defaultValue = "8") int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Phim> phimPage = phimService.searchPhimByTen(keyword, pageable);
+        Map<String, Object> response = Map.of(
+                "totalPages", phimPage.getTotalPages(),
+                "currentMovies", phimPage.getContent(),
+                "currentPage", phimPage.getNumber() + 1
+        );
+        return ApiResponse.<Map<String, Object>>builder()
                 .code(HttpStatus.OK.value())
                 .message("Tìm kiếm phim thành công")
-                .data(phimList)
+                .data(response)
                 .build();
     }
 

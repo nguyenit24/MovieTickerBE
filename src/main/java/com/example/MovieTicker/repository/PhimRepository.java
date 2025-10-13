@@ -18,10 +18,18 @@ public interface PhimRepository extends JpaRepository<Phim, String> {
     Optional<Phim> findByTenPhim(String tenPhim);
     
     boolean existsByTenPhim(String tenPhim);
-    
-    
-    @Query("SELECT p FROM Phim p WHERE LOWER(p.tenPhim) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    List<Phim> findByTenPhimContainingIgnoreCase(@Param("keyword") String keyword);
+
+
+    @Query("""
+    SELECT DISTINCT p
+    FROM Phim p
+    LEFT JOIN p.listTheLoai tl
+    WHERE LOWER(p.tenPhim) LIKE LOWER(CONCAT('%', :keyword, '%'))
+       OR LOWER(p.daoDien) LIKE LOWER(CONCAT('%', :keyword, '%'))
+       OR LOWER(tl.tenTheLoai) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    """)
+    Page<Phim> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
 
     Page<Phim> findAll(Pageable pageable);
     

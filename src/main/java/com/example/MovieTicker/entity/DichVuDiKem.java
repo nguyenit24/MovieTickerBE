@@ -23,4 +23,11 @@ public class DichVuDiKem {
 
     private String moTa;
 
+    @Column(nullable = false)
+    private String danhMuc; // e.g., "Đồ ăn", "Đồ uống"
+
+    @Column(nullable = false)
+    private Boolean trangThai;
+
+
 }

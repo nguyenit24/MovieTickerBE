@@ -1,9 +1,11 @@
 package com.example.MovieTicker.controller;
 
+import com.example.MovieTicker.entity.Ghe;
 import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.repository.PhongChieuRepository;
 import com.example.MovieTicker.request.PhongChieuRequest;
 import com.example.MovieTicker.response.ApiResponse;
+import com.example.MovieTicker.service.GheService;
 import com.example.MovieTicker.service.PhongChieuService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +26,10 @@ public class PhongChieuController {
    @Autowired
    PhongChieuService phongChieuService;
 
-   @GetMapping
+    @Autowired
+    GheService gheService;
+
+    @GetMapping
    public ApiResponse<?> getListPhongChieu() {
          return ApiResponse.<List<PhongChieu>>builder()
            .code(200)
@@ -56,7 +61,7 @@ public class PhongChieuController {
    public ApiResponse<?> getPhongChieuById(@PathVariable String id) {
        PhongChieu phongChieu = phongChieuService.getPhongChieuById(id);
        if (phongChieu != null) {
-           return ApiResponse.<PhongChieu>builder()
+           return ApiResponse.builder()
                    .code(HttpStatus.OK.value())
                    .message("Lấy thông tin phòng chiếu thành công")
                    .data(phongChieu)

@@ -41,4 +41,11 @@ public class DichVuDiKemService {
         return repository.findAll(pageable);
     }
 
+    public Page<DichVuDiKem> searchDichVuDiKem(String tenDv, String danhMuc, Pageable pageable) {
+        return repository.findDichVuDiKemByTenDvContainingIgnoreCaseAndDanhMuc(tenDv, danhMuc, pageable);
+    }
+
+    public Page<DichVuDiKem> findDichVuDiKemByTenDvContainingIgnoreCase(String tenDv, Pageable pageable) {
+        return repository.findDichVuDiKemByTenDvContainingIgnoreCase(tenDv, pageable);
+    }
 }

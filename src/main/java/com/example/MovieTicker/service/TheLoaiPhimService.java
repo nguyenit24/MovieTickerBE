@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import com.example.MovieTicker.repository.TheLoaiPhimRepository;
@@ -15,8 +17,8 @@ public class TheLoaiPhimService {
     @Autowired
     private TheLoaiPhimRepository theLoaiPhimRepository;
 
-    public List<TheLoaiPhim> getAllTheLoaiPhim() {
-        return theLoaiPhimRepository.findAll();
+    public Page<TheLoaiPhim> getAllTheLoaiPhim(Pageable pageable) {
+        return theLoaiPhimRepository.findAll(pageable);
     }
 
     public TheLoaiPhim getTheLoaiPhimById(String id) {

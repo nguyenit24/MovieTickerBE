@@ -1,5 +1,7 @@
 package com.example.MovieTicker.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,5 +49,6 @@ public class Phim {
     private List<TheLoaiPhim> listTheLoai = new ArrayList<>();
 
     @OneToMany(mappedBy = "phim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"phim"})
     private List<SuatChieu> listSuatChieu = new ArrayList<>();
 }

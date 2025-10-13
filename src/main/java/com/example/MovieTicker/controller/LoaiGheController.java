@@ -1,15 +1,18 @@
 package com.example.MovieTicker.controller;
 
 import com.example.MovieTicker.entity.LoaiGhe;
+import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.request.LoaiGheRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.LoaiGheService;
 
+import com.example.MovieTicker.service.PhongChieuService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -20,15 +23,28 @@ public class LoaiGheController {
    @Autowired
    LoaiGheService loaiGheService;
 
+   @Autowired
+   PhongChieuService phongChieuService;
+
    @GetMapping
-   public ApiResponse<?> getAllLoaiGhe() {
-       List<LoaiGhe> list = loaiGheService.getAllLoaiGhe();
+   public ApiResponse<?> getAllLoaiGhe(@RequestParam("phong") String phong) {
+       PhongChieu phongchieu = phongChieuService.getPhongChieuById(phong);
+       if (phongchieu == null) {
+           List<LoaiGhe> list = loaiGheService.getAllLoaiGhe();
+           return ApiResponse.<List<LoaiGhe>>builder()
+                   .code(200)
+                   .message("Lấy danh sách loại ghế thành công")
+                   .data(list)
+                   .build();
+       }
+       List<LoaiGhe> list = loaiGheService.getAllLoaiGheByPhongChieu(phongchieu);
        return ApiResponse.<List<LoaiGhe>>builder()
                .code(200)
                .message("Lấy danh sách loại ghế thành công")
                .data(list)
                .build();
    }
+
    
    
    @GetMapping("/{id}")

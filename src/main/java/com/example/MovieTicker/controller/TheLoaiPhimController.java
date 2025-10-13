@@ -1,20 +1,20 @@
 package com.example.MovieTicker.controller;
 
+import com.example.MovieTicker.entity.Phim;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.MovieTicker.entity.TheLoaiPhim;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.TheLoaiPhimService;
 
 import jakarta.annotation.PostConstruct;
+
+import java.util.Map;
 
 
 @RestController
@@ -24,23 +24,33 @@ public class TheLoaiPhimController {
     @Autowired
     private TheLoaiPhimService theLoaiPhimService;
 
-    @PostConstruct
-    public void init() {
-        String[] defaultGenres = {"Hành động", "Tình cảm", "Kinh dị", "Hài", "Hoạt hình","Khoa học viễn tưởng","Phiêu lưu","Tâm lý","Chiến tranh","Thể thao","Âm nhạc","Tài liệu"};
-        for (String ten : defaultGenres) {
-            if (!theLoaiPhimService.existsByTenTheLoai(ten)) {
-                TheLoaiPhim tlp = TheLoaiPhim.builder().tenTheLoai(ten).build();
-                theLoaiPhimService.createTheLoaiPhim(tlp);
-            }
-        }
-    }
+//    @PostConstruct
+//    public void init() {
+//        String[] defaultGenres = {"Hành động", "Tình cảm", "Kinh dị", "Hài", "Hoạt hình","Khoa học viễn tưởng","Phiêu lưu","Tâm lý","Chiến tranh","Thể thao","Âm nhạc","Tài liệu"};
+//        for (String ten : defaultGenres) {
+//            if (!theLoaiPhimService.existsByTenTheLoai(ten)) {
+//                TheLoaiPhim tlp = TheLoaiPhim.builder().tenTheLoai(ten).build();
+//                theLoaiPhimService.createTheLoaiPhim(tlp);
+//            }
+//        }
+//    }
 
     @GetMapping
-    public ApiResponse<?> getAllTheLoaiPhim() {
+    public ApiResponse<?> getAllTheLoaiPhim(@RequestParam(defaultValue = "1") int page,
+                                            @RequestParam(defaultValue = "5") int size) {
+        if (page < 1) page = 1;
+        if (size < 1) size = 5;
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<TheLoaiPhim> theLoaiPhimPage = theLoaiPhimService.getAllTheLoaiPhim(pageable);
+        Map<String, Object> response = Map.of(
+                "totalPages", theLoaiPhimPage.getTotalPages(),
+                "currentGens", theLoaiPhimPage.getContent(),
+                "currentPage", theLoaiPhimPage.getNumber() + 1
+        );
         return ApiResponse.<Object>builder()
                 .code(200)
                 .message("Lấy danh sách thể loại phim thành công")
-                .data(theLoaiPhimService.getAllTheLoaiPhim())
+                .data(response)
                 .build();
     }
 
