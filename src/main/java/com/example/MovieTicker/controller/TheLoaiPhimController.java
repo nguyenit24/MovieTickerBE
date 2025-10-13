@@ -14,6 +14,7 @@ import com.example.MovieTicker.service.TheLoaiPhimService;
 
 import jakarta.annotation.PostConstruct;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -35,8 +36,8 @@ public class TheLoaiPhimController {
 //        }
 //    }
 
-    @GetMapping
-    public ApiResponse<?> getAllTheLoaiPhim(@RequestParam(defaultValue = "1") int page,
+    @GetMapping("/pageable")
+    public ApiResponse<?> getAllTheLoaiPhimPageable(@RequestParam(defaultValue = "1") int page,
                                             @RequestParam(defaultValue = "5") int size) {
         if (page < 1) page = 1;
         if (size < 1) size = 5;
@@ -51,6 +52,16 @@ public class TheLoaiPhimController {
                 .code(200)
                 .message("Lấy danh sách thể loại phim thành công")
                 .data(response)
+                .build();
+    }
+
+    @GetMapping
+    public ApiResponse<?> getAllTheLoaiPhim() {
+        List<TheLoaiPhim> theLoaiPhim = theLoaiPhimService.getAllTheLoaiPhim();
+        return ApiResponse.<Object>builder()
+                .code(200)
+                .message("Lấy danh sách thể loại phim thành công")
+                .data(theLoaiPhim)
                 .build();
     }
 

@@ -110,6 +110,26 @@ public class KhuyenMaiController {
                     .build());
         }
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<?>> searchKhuyenMai(@RequestParam String keyword, @RequestParam(defaultValue = "1") int page) {
+        try {
+            List<KhuyenMai> khuyenMaiList = khuyenMaiService.searchKhuyenMai(keyword);
+            return ResponseEntity.ok(
+                    ApiResponse.<List<KhuyenMai>>builder()
+                            .code(200)
+                            .message("Tìm kiếm khuyến mãi thành công")
+                            .data(khuyenMaiList)
+                            .build()
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<List<KhuyenMai>>builder()
+                            .code(500)
+                            .message("Lỗi server: " + e.getMessage())
+                            .build());
+        }
+    }
     
     @PostMapping
     public ResponseEntity<ApiResponse<KhuyenMai>> createKhuyenMai(@RequestBody KhuyenMaiRequest request) {

@@ -20,5 +20,7 @@ public interface KhuyenMaiRepository extends JpaRepository<KhuyenMai, String>   
     @Query("SELECT k FROM KhuyenMai k WHERE k.tenKm LIKE %:keyword% OR k.moTa LIKE %:keyword%")
     List<KhuyenMai> findByKeyword(@Param("keyword") String keyword);
 
+    Page<KhuyenMai> findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(String keyword, Pageable pageable);
+
     Page<KhuyenMai> findAll(Pageable pageable);
 }

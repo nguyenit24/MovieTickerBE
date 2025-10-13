@@ -21,6 +21,10 @@ public class TheLoaiPhimService {
         return theLoaiPhimRepository.findAll(pageable);
     }
 
+    public List<TheLoaiPhim> getAllTheLoaiPhim() {
+        return theLoaiPhimRepository.findAll();
+    }
+
     public TheLoaiPhim getTheLoaiPhimById(String id) {
         return theLoaiPhimRepository.findById(id).orElse(null);
     }

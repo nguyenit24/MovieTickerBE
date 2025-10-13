@@ -23,7 +23,7 @@ public class KhuyenMai {
 
     @Column(nullable = false)
     private String moTa;
-    
+
     @Column(nullable = false)
     private Double giaTri; // % giảm
 
@@ -33,14 +33,18 @@ public class KhuyenMai {
     @Column(nullable = false)
     private LocalDate ngayKetThuc;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String maCode; // Mã code khuyến mãi
 
     @Column(nullable = false)
     private Integer soLuong; // Số lượng mã khuyến mãi có thể sử dụng
 
+    @Column(nullable = false)
+    private boolean trangThai;
+
+    private String urlHinh;
+
     @OneToMany(mappedBy = "khuyenMai")
-    @JsonIgnore
     private List<VeKhuyenMai> ves;
     
     @PrePersist
