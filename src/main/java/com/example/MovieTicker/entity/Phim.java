@@ -51,4 +51,9 @@ public class Phim {
     @OneToMany(mappedBy = "phim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"phim"})
     private List<SuatChieu> listSuatChieu = new ArrayList<>();
+
+    @OneToMany(mappedBy = "phim", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DanhGiaPhim> danhGiaPhims = new ArrayList<>();
+
+    
 }

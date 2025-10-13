@@ -3,6 +3,7 @@ import java.util.List;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.Set;
 @Entity
 @Data
 @NoArgsConstructor
@@ -14,7 +15,8 @@ public class VaiTro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int vaiTroId;
     private String tenVaiTro;
-
     @OneToMany(mappedBy = "vaiTro", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaiKhoan> taiKhoans;
+    @ManyToMany
+    private Set<Permission> permissions;
 }

@@ -1,9 +1,13 @@
 package com.example.MovieTicker.controller;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 
+import com.example.MovieTicker.entity.HoaDon;
 import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.CreateMomoResponse;
+import com.example.MovieTicker.response.HoaDonResponse;
 import com.example.MovieTicker.service.HoaDonService;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -24,8 +28,11 @@ public class HoaDonController {
 
     @PostMapping("/vn_pay/create")
     public ApiResponse<?> createPaymentVnPay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        String paymentUrl = invoiceService.createVnPayRequest(paymentRequest, request, response);
         try {
+            // Validate hóa đơn trước khi tạo payment
+            invoiceService.validateInvoiceForPayment(paymentRequest.getOrderId());
+            
+            String paymentUrl = invoiceService.createVnPayRequest(paymentRequest, request, response);
             return new ApiResponse<>(
                     HttpStatus.CREATED.value(),
                     "Tạo thanh toán thành công",
@@ -33,9 +40,9 @@ public class HoaDonController {
             );
         } catch (Exception e) {
             return new ApiResponse<>(
-                    HttpStatus.NOT_FOUND.value(),
-                    "Tạo thanh toán thất bại",
-                    e.getMessage()
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Tạo thanh toán thất bại: " + e.getMessage(),
+                    null
             );
         }
 
@@ -45,23 +52,34 @@ public class HoaDonController {
     public ApiResponse<?> getPaymentInfoVnPay(
             @RequestParam("vnp_TransactionNo") String transNo,
             @RequestParam("vnp_PayDate") String transDate,
-            @RequestParam("vnp_ResponseCode") String responseCode
+            @RequestParam("vnp_ResponseCode") String responseCode,
+            @RequestParam("vnp_TxnRef") String orderId
     ) {
+        // Cập nhật trạng thái hóa đơn và vé
+        invoiceService.updatePaymentStatus(orderId, transNo, transDate, responseCode);
+        
         if (responseCode.equals("00")) {
             Map<String, Object> data = new HashMap<>();
             data.put("transactionNo", transNo);
             data.put("transactionDate", transDate);
             data.put("responseCode", responseCode);
+            data.put("orderId", orderId);
+            data.put("status", "SUCCESS");
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Thanh toán thành công",
                     data
             );
         }
+        
+        Map<String, Object> errorData = new HashMap<>();
+        errorData.put("responseCode", responseCode);
+        errorData.put("orderId", orderId);
+        errorData.put("status", "FAILED");
         return new ApiResponse<>(
-                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.BAD_REQUEST.value(),
                 "Thanh toán thất bại",
-                "Đã xảy ra lỗi"
+                errorData
         );
     }
 
@@ -113,6 +131,9 @@ public class HoaDonController {
     @PostMapping("/momo/create")
     public ApiResponse<?> createMomo(@RequestBody PaymentRequest paymentRequest) {
         try {
+            // Validate hóa đơn trước khi tạo payment
+            invoiceService.validateInvoiceForPayment(paymentRequest.getOrderId());
+            
             return new ApiResponse<>(
                     HttpStatus.CREATED.value(),
                     "Tạo thanh toán thành công",
@@ -121,9 +142,9 @@ public class HoaDonController {
         }
         catch (Exception e) {
             return new ApiResponse<>(
-                    HttpStatus.NOT_FOUND.value(),
-                    "Tạo thanh toán thất bại",
-                    e.getMessage()
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Tạo thanh toán thất bại: " + e.getMessage(),
+                    null
             );
         }
 
@@ -135,24 +156,36 @@ public class HoaDonController {
             @RequestParam("responseTime") String transDate,
             @RequestParam("requestId") String requestId,
             @RequestParam("resultCode") Integer resultCode,
-            @RequestParam("message") String message
+            @RequestParam("message") String message,
+            @RequestParam("orderId") String orderId
     ) throws IOException {
+        // Cập nhật trạng thái hóa đơn và vé
+        invoiceService.updatePaymentStatus(orderId, transNo, transDate, resultCode.toString());
+        
         if (resultCode == 0) {
             Map<String, Object> data = new HashMap<>();
             data.put("transactionNo", transNo);
             data.put("transactionDate", transDate);
             data.put("requestId", requestId);
             data.put("responseCode", resultCode);
+            data.put("orderId", orderId);
+            data.put("status", "SUCCESS");
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
                     "Thanh toán thành công",
                     data
             );
         }
+        
+        Map<String, Object> errorData = new HashMap<>();
+        errorData.put("resultCode", resultCode);
+        errorData.put("orderId", orderId);
+        errorData.put("status", "FAILED");
+        errorData.put("message", message);
         return new ApiResponse<>(
-                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.BAD_REQUEST.value(),
                 "Thanh toán thất bại",
-                message
+                errorData
         );
     }
 
@@ -183,5 +216,126 @@ public class HoaDonController {
                 "Hoàn tiền thất bại",
                 response.getMessage()
         );
+    }
+
+    // Endpoint để FE check trạng thái thanh toán
+    @GetMapping("/status/{orderId}")
+    public ApiResponse<?> checkPaymentStatus(@PathVariable String orderId) {
+        try {
+            HoaDon hoaDon = invoiceService.getHoaDonByMaHD(orderId);
+            if (hoaDon != null) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("orderId", orderId);
+                data.put("status", hoaDon.getTrangThai());
+                data.put("transactionNo", hoaDon.getTransactionNo());
+                data.put("transactionDate", hoaDon.getTransactionDate());
+                data.put("responseCode", hoaDon.getResponseCode());
+                
+                String paymentStatus = "PENDING";
+                if ("PAID".equals(hoaDon.getTrangThai()) && "00".equals(hoaDon.getResponseCode())) {
+                    paymentStatus = "SUCCESS";
+                } else if (hoaDon.getResponseCode() != null && !"00".equals(hoaDon.getResponseCode())) {
+                    paymentStatus = "FAILED";
+                }
+                data.put("paymentStatus", paymentStatus);
+                
+                return new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Lấy trạng thái thành công",
+                        data
+                );
+            }
+            
+            return new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Không tìm thấy hóa đơn",
+                    null
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy trạng thái thanh toán",
+                    e.getMessage()
+            );
+        }
+    }
+    
+    /**
+     * API hủy hóa đơn manual khi user out ra không thanh toán
+     */
+    @PostMapping("/cancel/{maHD}")
+    public ApiResponse<?> cancelInvoice(@PathVariable String maHD) {
+        try {
+            invoiceService.cancelInvoiceManual(maHD);
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Hủy hóa đơn thành công",
+                    null
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.BAD_REQUEST.value(),
+                    "Hủy hóa đơn thất bại: " + e.getMessage(),
+                    null
+            );
+        }
+    }
+    
+ 
+
+    @GetMapping("/all")
+    public ApiResponse<?> getAllInvoices() {
+        try {
+            List<HoaDon> invoices = invoiceService.getAllHoaDon();
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy danh sách hóa đơn thành công",
+                    invoices
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
+                    null
+            );
+        }
+    }
+
+
+    @GetMapping("/detail/{maHD}")
+    public ApiResponse<?> getHoaDonDetail(@PathVariable String maHD) {
+        try {
+            HoaDonResponse hoaDonDetail = invoiceService.getHoaDonResponseByMaHD(maHD);
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy chi tiết hóa đơn thành công",
+                    hoaDonDetail
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    "Lỗi khi lấy chi tiết hóa đơn: " + e.getMessage(),
+                    null
+            );
+        }
+    }
+
+   
+    @GetMapping("/my-invoices")
+    public ApiResponse<?> getMyInvoices() {
+        try {
+            List<HoaDonResponse> hoaDonList = invoiceService.getMyInvoices();
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy danh sách hóa đơn của bạn thành công",
+                    hoaDonList
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
+                    null
+            );
+        }
     }
 }

@@ -2,7 +2,6 @@ package com.example.MovieTicker.controller;
 
 import com.example.MovieTicker.entity.Ghe;
 import com.example.MovieTicker.entity.PhongChieu;
-import com.example.MovieTicker.repository.PhongChieuRepository;
 import com.example.MovieTicker.request.PhongChieuRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.GheService;

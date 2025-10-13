@@ -5,6 +5,8 @@ import com.example.MovieTicker.request.GheRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.GheService;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -32,4 +34,22 @@ public class GheController {
                     .build();
         }
     }  
+
+    @GetMapping("/booking/{maSuatChieu}")
+    public ApiResponse<?> getBooking(@PathVariable String maSuatChieu) {
+        List<Ghe> bookedSeats = gheService.getBooking(maSuatChieu);
+       try {
+            return ApiResponse.<List<Ghe>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy danh sách ghế đã đặt thành công")
+                    .data(bookedSeats)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.builder()
+                    .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Đã xảy ra lỗi khi lấy danh sách ghế đã đặt: " + e.getMessage())
+                    .build();
+        }
+    }
+        
 }

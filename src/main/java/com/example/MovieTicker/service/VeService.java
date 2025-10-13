@@ -4,14 +4,20 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.MovieTicker.repository.*;
 import com.example.MovieTicker.request.*;
+import com.example.MovieTicker.response.*;
 import com.example.MovieTicker.entity.*;
+import com.example.MovieTicker.enums.TicketStatus;
+import com.example.MovieTicker.enums.InvoiceStatus;
 import com.example.MovieTicker.config.MomoAPI;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,9 +45,15 @@ public class VeService {
     private MomoAPI momoAPI;
     @Autowired
     private HoaDonRepository hoaDonRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private QRCodeService qrCodeService;
+    @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
 
     @Transactional
-    public List<Object> createTickets(TicketBookingRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+    public HoaDonResponse createTickets(TicketBookingRequest request, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         // Validate the request
         if (request.getMaGheList() == null || request.getMaGheList().isEmpty()) {
             throw new RuntimeException("Vui lòng chọn ghế trước khi đặt vé");
@@ -60,13 +72,40 @@ public class VeService {
         if (gheList.size() != request.getMaGheList().size()) {
             throw new RuntimeException("Một hoặc nhiều ghế không tồn tại trong hệ thống");
         }
-        
-        // Kiểm tra ghế đã được đặt chưa
-        List<Ve> existingTickets = veRepository.findBySuatChieuMaSuatChieuAndGheMaGheIn(
-            request.getMaSuatChieu(), request.getMaGheList());
-        if (!existingTickets.isEmpty()) {
-            throw new RuntimeException("Một hoặc nhiều ghế đã được đặt cho suất chiếu này");
+        // Kiểm tra và xóa các vé processing đã hết hạn (quá 10 phút)
+        LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(10);
+        List<Ve> expiredTickets = veRepository.findTicketsBySuatChieuAndSeatsAndStatusAndTime(
+            request.getMaSuatChieu(), 
+            request.getMaGheList(), 
+            TicketStatus.PROCESSING.getCode(),
+            expiredTime
+        );
+        if (!expiredTickets.isEmpty()) {
+            // Cập nhật trạng thái các vé hết hạn thành EXPIRED
+            for (Ve expiredTicket : expiredTickets) {
+                expiredTicket.setTrangThai(TicketStatus.EXPIRED.getCode());
+                veRepository.save(expiredTicket);
+            }
         }
+        // Kiểm tra ghế đã được đặt và thanh toán chưa
+        List<Ve> paidTickets = veRepository.findTicketsBySuatChieuAndSeatsAndStatus(
+            request.getMaSuatChieu(), 
+            request.getMaGheList(), 
+            TicketStatus.PAID.getCode()
+        );
+        if (!paidTickets.isEmpty()) {
+            throw new RuntimeException("Đã có người đặt một hoặc nhiều ghế bạn chọn. Vui lòng chọn ghế khác.");
+        }
+        List<Ve> paidTickets2 = veRepository.findTicketsBySuatChieuAndSeatsAndStatus(
+            request.getMaSuatChieu(), 
+            request.getMaGheList(), 
+            TicketStatus.PROCESSING.getCode()
+        );
+        if (!paidTickets2.isEmpty()) {
+            throw new RuntimeException("Đã có người đặt một hoặc nhiều ghế bạn chọn. Vui lòng chọn ghế khác.");
+        }
+        
+        
         
         // Kiểm tra khuyến mãi nếu có
         KhuyenMai khuyenMai = null;
@@ -93,9 +132,13 @@ public class VeService {
         hoaDon.setTongTien(tongTienVe); // Sẽ cập nhật lại sau khi thêm dịch vụ và khuyến mãi
         hoaDon.setPhuongThucThanhToan(request.getPhuongThucThanhToan());
         hoaDon.setNgayLap(LocalDateTime.now());
-        hoaDon.setTrangThai("PENDING");
+        hoaDon.setTrangThai(InvoiceStatus.PROCESSING.getCode());
         hoaDon.setMaGiaoDich("GD" + System.currentTimeMillis()); // Mã giao dịch tạm thời
-        hoaDon.setUser(null); // Set user nếu có thông tin tài khoản
+        
+        // Lấy user từ token hiện tại và set vào hóa đơn
+        User currentUser = getCurrentUser();
+        hoaDon.setUser(currentUser);
+        
         hoaDon = hoaDonRepository.save(hoaDon);
         
         // Tạo vé cho từng ghế
@@ -172,26 +215,11 @@ public class VeService {
         );
         hoaDon.setGhiChu(thongTinChiTiet);
         hoaDon.setVes(ticketList);
+        hoaDon.setTrangThai(InvoiceStatus.PROCESSING.getCode());
         hoaDon = hoaDonRepository.save(hoaDon);
         
-        List<Object> result = new ArrayList<>();
-        try {
-            PaymentRequest paymentRequest = new PaymentRequest();
-            paymentRequest.setAmount(hoaDon.getTongTien().longValue());
-            paymentRequest.setOrderId(hoaDon.getMaHD());
-            
-            if(hoaDon.getPhuongThucThanhToan().equals("VNPAY")){
-                String paymentUrl = hoaDonService.createVnPayRequest(paymentRequest, httpRequest, httpResponse);
-                result.add(ticketList);
-                result.add(paymentUrl);
-            } else {
-                throw new RuntimeException("Phương thức thanh toán không được hỗ trợ");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException("Có lỗi xảy ra khi xử lý thanh toán: " + e.getMessage());
-        }
-
-        return result;
+        // Chuyển đổi sang response
+        return convertToHoaDonResponse(hoaDon);
     }
     
     private Ve createSingleTicket(TicketBookingRequest request, SuatChieu suatChieu, Ghe ghe, HoaDon hoaDon) {
@@ -206,8 +234,33 @@ public class VeService {
         
         ve.setNgayDat(LocalDateTime.now());
         ve.setUser(null);
+        ve.setTrangThai(TicketStatus.PROCESSING.getCode());
 
-        return veRepository.save(ve);
+        // Lưu vé trước để có mã vé
+        ve = veRepository.save(ve);
+        
+        // Tạo QR code cho vé
+        try {
+            String qrContent = qrCodeService.createTicketQRContent(
+                ve.getMaVe(),
+                suatChieu.getPhim().getTenPhim(),
+                suatChieu.getPhongChieu().getTenPhong(),
+                ghe.getTenGhe(),
+                suatChieu.getThoiGianBatDau().toString()
+            );
+            
+            String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
+            ve.setQrCodeUrl(qrCodeUrl);
+            
+            // Cập nhật lại vé với QR code URL
+            ve = veRepository.save(ve);
+            
+        } catch (Exception e) {
+            // Log lỗi nhưng không dừng việc tạo vé
+            System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
+        }
+
+        return ve;
     }
     
     private double processAdditionalServices(Ve ve, List<DichVuRequest> dichVuList) {
@@ -249,5 +302,56 @@ public class VeService {
     
     public List<Ve> getVesBySuatChieu(String maSuatChieu) {
         return veRepository.findBySuatChieuMaSuatChieu(maSuatChieu);
+    }
+    
+    private HoaDonResponse convertToHoaDonResponse(HoaDon hoaDon) {
+        List<VeResponse> danhSachVeResponse = hoaDon.getVes().stream()
+            .map(this::convertToVeResponse)
+            .collect(Collectors.toList());
+            
+        return HoaDonResponse.builder()
+            .maHD(hoaDon.getMaHD())
+            .ngayLap(hoaDon.getNgayLap())
+            .tongTien(hoaDon.getTongTien())
+            .phuongThucThanhToan(hoaDon.getPhuongThucThanhToan())
+            .trangThai(hoaDon.getTrangThai())
+            .maGiaoDich(hoaDon.getMaGiaoDich())
+            .ghiChu(hoaDon.getGhiChu())
+            .danhSachVe(danhSachVeResponse)
+            .tenNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : null)
+            .build();
+    }
+    
+    private VeResponse convertToVeResponse(Ve ve) {
+        return VeResponse.builder()
+            .maVe(ve.getMaVe())
+            .tenPhim(ve.getSuatChieu().getPhim().getTenPhim())
+            .tenPhongChieu(ve.getSuatChieu().getPhongChieu().getTenPhong())
+            .tenGhe(ve.getGhe().getTenGhe())
+            .thoiGianChieu(ve.getSuatChieu().getThoiGianBatDau())
+            .ngayDat(ve.getNgayDat())
+            .thanhTien(ve.getThanhTien())
+            .trangThai(ve.getTrangThai())
+            .maHoaDon(ve.getHoaDon().getMaHD())
+            .qrCodeUrl(ve.getQrCodeUrl()) // Thêm QR code URL vào response
+            .build();
+    }
+
+    /**
+     * Lấy user hiện tại từ Security Context (JWT token)
+     * @return User hiện tại hoặc null nếu không có authentication
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName(); // Đây là tenDangNhap từ JWT
+            
+            // Tìm TaiKhoan theo tenDangNhap
+            TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
+            if (taiKhoan != null) {
+                return taiKhoan.getUser();
+            }
+        }
+        return null;
     }
 }

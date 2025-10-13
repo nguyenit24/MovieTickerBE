@@ -51,6 +51,10 @@ public class HoaDon {
 
     private String ghiChu;
 
+    private String transactionNo;
+    private String transactionDate;
+    private String responseCode;
+
     @JsonIgnore
     @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ve> ves;

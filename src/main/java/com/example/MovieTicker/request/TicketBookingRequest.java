@@ -10,7 +10,6 @@ public class TicketBookingRequest {
     private String maSuatChieu;
     private String maPhong;
     private List<String> maGheList; 
-    // private String maTaiKhoan;
     private String maKhuyenMai; 
     private List<DichVuRequest> dichVuList;
     private String phuongThucThanhToan;
