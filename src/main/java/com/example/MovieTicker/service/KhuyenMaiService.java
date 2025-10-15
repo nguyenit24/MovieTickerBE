@@ -33,9 +33,9 @@ public class KhuyenMaiService {
         return khuyenMaiRepository.findByKeyword(keyword);
     }
 
-    public Page<KhuyenMai> searchKhuyenMaiPageable(String keyword, Pageable pageable) {
-        return khuyenMaiRepository.findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(keyword,pageable);
-    }
+    // public Page<KhuyenMai> searchKhuyenMaiPageable(String keyword, Pageable pageable) {
+    //     return khuyenMaiRepository.findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(keyword,pageable);
+    // }
     
     public KhuyenMai createKhuyenMai(KhuyenMaiRequest request) {
         if (request.getNgayKetThuc().isBefore(request.getNgayBatDau())) {
@@ -89,5 +89,29 @@ public class KhuyenMaiService {
 
     public Page<KhuyenMai> getKhuyenMaiPage(Pageable pageable) {
         return khuyenMaiRepository.findAll(pageable);
+    }
+
+    public Optional<KhuyenMai> getKhuyenMaiByCode(String maCode) {
+        return khuyenMaiRepository.findByMaCode(maCode);
+    }
+
+    public KhuyenMai getKhuyenMaiByCodeValidate(String code) {
+        Optional<KhuyenMai> khuyenMai = getKhuyenMaiByCode(code);
+        if(khuyenMai.isPresent()) {
+            KhuyenMai km = khuyenMai.get();
+            if(km.getSoLuong() <= 0) {
+                throw new RuntimeException("Khuyến mãi đã hết lượt sử dụng");
+            }
+            if(km.isTrangThai()) {
+                if(km.getNgayBatDau().isBefore(LocalDate.now()) && km.getNgayKetThuc().isAfter(LocalDate.now())) {
+                    return km;
+                } else {
+                    throw new RuntimeException("Khuyến mãi đã hết hạn");
+                }
+            } else {
+                throw new RuntimeException("Khuyến mãi đã bị vô hiệu hóa");
+            }
+        }
+        return khuyenMai.orElse(null);
     }
 }

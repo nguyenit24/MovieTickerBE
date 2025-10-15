@@ -3,6 +3,8 @@ package com.example.MovieTicker.entity;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -50,6 +52,7 @@ public class Ve {
     private List<ChiTietDichVuVe> chiTietDichVuVes;
 
     @OneToMany(mappedBy = "ve")
+    @JsonIgnore
     private List<VeKhuyenMai> khuyenMais;
 
     @PrePersist
