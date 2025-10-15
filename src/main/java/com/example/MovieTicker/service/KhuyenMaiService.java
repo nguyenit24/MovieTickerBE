@@ -32,6 +32,10 @@ public class KhuyenMaiService {
     public List<KhuyenMai> searchKhuyenMai(String keyword) {
         return khuyenMaiRepository.findByKeyword(keyword);
     }
+
+    // public Page<KhuyenMai> searchKhuyenMaiPageable(String keyword, Pageable pageable) {
+    //     return khuyenMaiRepository.findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(keyword,pageable);
+    // }
     
     public KhuyenMai createKhuyenMai(KhuyenMaiRequest request) {
         if (request.getNgayKetThuc().isBefore(request.getNgayBatDau())) {
@@ -40,10 +44,14 @@ public class KhuyenMaiService {
 
         KhuyenMai khuyenMai = KhuyenMai.builder()
                 .tenKm(request.getTenKm())
+                .maCode(request.getMaCode())
+                .soLuong(request.getSoLuong())
+                .trangThai(request.isTrangThai())
                 .moTa(request.getMoTa())
                 .giaTri(request.getGiaTri())
                 .ngayBatDau(request.getNgayBatDau())
                 .ngayKetThuc(request.getNgayKetThuc())
+                .urlHinh(request.getUrlHinh())
                 .build();
         
         return khuyenMaiRepository.save(khuyenMai);
@@ -61,6 +69,10 @@ public class KhuyenMaiService {
             khuyenMai.setGiaTri(request.getGiaTri());
             khuyenMai.setNgayBatDau(request.getNgayBatDau());
             khuyenMai.setNgayKetThuc(request.getNgayKetThuc());
+            khuyenMai.setUrlHinh(request.getUrlHinh());
+            khuyenMai.setSoLuong(request.getSoLuong());
+            khuyenMai.setTrangThai(request.isTrangThai());
+            khuyenMai.setMaCode(request.getMaCode());
             
             return khuyenMaiRepository.save(khuyenMai);
         }
@@ -77,5 +89,29 @@ public class KhuyenMaiService {
 
     public Page<KhuyenMai> getKhuyenMaiPage(Pageable pageable) {
         return khuyenMaiRepository.findAll(pageable);
+    }
+
+    public Optional<KhuyenMai> getKhuyenMaiByCode(String maCode) {
+        return khuyenMaiRepository.findByMaCode(maCode);
+    }
+
+    public KhuyenMai getKhuyenMaiByCodeValidate(String code) {
+        Optional<KhuyenMai> khuyenMai = getKhuyenMaiByCode(code);
+        if(khuyenMai.isPresent()) {
+            KhuyenMai km = khuyenMai.get();
+            if(km.getSoLuong() <= 0) {
+                throw new RuntimeException("Khuyến mãi đã hết lượt sử dụng");
+            }
+            if(km.isTrangThai()) {
+                if(km.getNgayBatDau().isBefore(LocalDate.now()) && km.getNgayKetThuc().isAfter(LocalDate.now())) {
+                    return km;
+                } else {
+                    throw new RuntimeException("Khuyến mãi đã hết hạn");
+                }
+            } else {
+                throw new RuntimeException("Khuyến mãi đã bị vô hiệu hóa");
+            }
+        }
+        return khuyenMai.orElse(null);
     }
 }

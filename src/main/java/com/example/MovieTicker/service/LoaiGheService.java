@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.example.MovieTicker.entity.LoaiGhe;
+import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.repository.LoaiGheRepository;
 import com.example.MovieTicker.repository.GheRepository;
 import com.example.MovieTicker.request.LoaiGheRequest;
@@ -45,7 +46,12 @@ public class LoaiGheService {
     public List<LoaiGhe> getAllLoaiGhe() {
         return loaiGheRepository.findAll();
     }
-    
+
+    public List<LoaiGhe> getAllLoaiGheByPhongChieu(PhongChieu phongChieu) {
+        return loaiGheRepository.findAllByPhongChieu(phongChieu);
+    }
+
+
     public LoaiGhe getLoaiGheById(String id) {
         Optional<LoaiGhe> loaiGheOptional = loaiGheRepository.findById(id);
         return loaiGheOptional.orElse(null);

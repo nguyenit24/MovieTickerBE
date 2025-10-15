@@ -3,6 +3,7 @@ package com.example.MovieTicker.controller;
 import com.example.MovieTicker.entity.KhuyenMai;
 import com.example.MovieTicker.request.KhuyenMaiRequest;
 import com.example.MovieTicker.response.ApiResponse;
+import com.example.MovieTicker.response.KhuyenMaiResponse;
 import com.example.MovieTicker.service.KhuyenMaiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -90,24 +91,25 @@ public class KhuyenMaiController {
                     .build());
         }
     }
-    
+
+
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<KhuyenMai>>> searchKhuyenMai(@RequestParam String keyword) {
+    public ResponseEntity<ApiResponse<?>> searchKhuyenMai(@RequestParam String keyword, @RequestParam(defaultValue = "1") int page) {
         try {
             List<KhuyenMai> khuyenMaiList = khuyenMaiService.searchKhuyenMai(keyword);
             return ResponseEntity.ok(
-                ApiResponse.<List<KhuyenMai>>builder()
-                    .code(200)
-                    .message("Tìm kiếm khuyến mãi thành công")
-                    .data(khuyenMaiList)
-                    .build()
+                    ApiResponse.<List<KhuyenMai>>builder()
+                            .code(200)
+                            .message("Tìm kiếm khuyến mãi thành công")
+                            .data(khuyenMaiList)
+                            .build()
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.<List<KhuyenMai>>builder()
-                    .code(500)
-                    .message("Lỗi server: " + e.getMessage())
-                    .build());
+                    .body(ApiResponse.<List<KhuyenMai>>builder()
+                            .code(500)
+                            .message("Lỗi server: " + e.getMessage())
+                            .build());
         }
     }
     
@@ -233,5 +235,60 @@ public class KhuyenMaiController {
         }
     }
     
+    @GetMapping("/validate/code/{code}")
+    public ApiResponse<?> ValidateCode(@PathVariable String code) {
+        KhuyenMai khuyenMai = khuyenMaiService.getKhuyenMaiByCodeValidate(code);
+        if (khuyenMai != null) {
+            return ApiResponse.<String>builder()
+                .code(200)
+                .message("Mã khuyến mãi hợp lệ")
+                .data(code)
+                .build();
+        } else {
+            return ApiResponse.<String>builder()
+                .code(404)
+                .message("Mã khuyến mãi không hợp lệ hoặc đã hết hạn")
+                .build();
+        }
+    }
+
+    @GetMapping("code/{code}")
+    public ResponseEntity<ApiResponse<?>> getKhuyenMaiByCode(@PathVariable String code) {
+        try {
+            Optional<KhuyenMai> khuyenMai = khuyenMaiService.getKhuyenMaiByCode(code);
+            KhuyenMaiResponse response = new KhuyenMaiResponse();
+            response.setMaKm(khuyenMai.get().getMaKm());
+            response.setTenKm(khuyenMai.get().getTenKm());
+            response.setMaCode(khuyenMai.get().getMaCode());
+            response.setGiaTri(khuyenMai.get().getGiaTri());
+            response.setNgayBatDau(khuyenMai.get().getNgayBatDau());
+            response.setNgayKetThuc(khuyenMai.get().getNgayKetThuc());
+            response.setSoLuong(khuyenMai.get().getSoLuong());
+            response.setMoTa(khuyenMai.get().getMoTa());
+            response.setUrlHinh(khuyenMai.get().getUrlHinh());
+            if (khuyenMai.isPresent()) {
+                return ResponseEntity.ok(
+                    ApiResponse.<KhuyenMaiResponse>builder()
+                        .code(200)
+                        .message("Lấy thông tin khuyến mãi thành công")
+                        .data(response)
+                        .build()
+                );
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.<KhuyenMai>builder()
+                        .code(404)
+                        .message("Không tìm thấy khuyến mãi với mã: " + code)
+                        .build());
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.<KhuyenMai>builder()
+                    .code(500)
+                    .message("Lỗi server: " + e.getMessage())
+                    .build());
+        }
+    }
+
     
 }

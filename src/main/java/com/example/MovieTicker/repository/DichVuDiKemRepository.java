@@ -1,5 +1,6 @@
 package com.example.MovieTicker.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -13,4 +14,11 @@ import com.example.MovieTicker.entity.DichVuDiKem;
 public interface DichVuDiKemRepository extends JpaRepository<DichVuDiKem, Long> {
     Optional<DichVuDiKem> findById(Long id);
     Page<DichVuDiKem> findAll(Pageable pageable);
+
+    Page<DichVuDiKem> findDichVuDiKemByTenDvContainingIgnoreCaseAndDanhMuc(String tenDv, String danhMuc,
+                                                                           Pageable pageable);
+
+    Page<DichVuDiKem> findDichVuDiKemByTenDvContainingIgnoreCase(String tenDv, Pageable pageable);
+
+    List<DichVuDiKem> findByDanhMuc(String tendanhmuc);
 }

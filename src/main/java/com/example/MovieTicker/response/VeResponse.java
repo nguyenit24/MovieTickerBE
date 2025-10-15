@@ -27,4 +27,5 @@ public class VeResponse {
     private String trangThai;
     private String maHoaDon;
     private String maSuatChieu;
+    private String qrCodeUrl; 
 }

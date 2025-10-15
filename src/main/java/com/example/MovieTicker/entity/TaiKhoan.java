@@ -22,6 +22,7 @@ public class TaiKhoan {
     
     private String MatKhau;
 
+
     
     @ManyToOne
     @JoinColumn(name = "maUser", nullable = false)

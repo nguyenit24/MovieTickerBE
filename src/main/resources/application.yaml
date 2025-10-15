@@ -35,6 +35,8 @@ spring:
           auth: true
           starttls:
             enable: true
+          ssl:
+            trust: smtp.gmail.com
 
 springdoc:
   api-docs:
@@ -53,3 +55,11 @@ jwt:
   Key: "u7S0lNZzkdu0yiM04aw53nlCjFjENGUfQEPXuUQwBnTirTkZaM6CQqi41vU5hL3V"
 frontend:
   base-url: http://localhost:5173
+
+# QR Code configuration
+qr:
+  code:
+    upload:
+      path: uploads/qr-codes
+    base:
+      url: http://localhost:8080

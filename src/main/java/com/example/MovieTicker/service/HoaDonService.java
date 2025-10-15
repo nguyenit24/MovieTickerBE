@@ -3,11 +3,16 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.config.MomoAPI;
 import com.example.MovieTicker.config.PaymentConfig;
 import com.example.MovieTicker.entity.HoaDon;
+import com.example.MovieTicker.entity.KhuyenMai;
+import com.example.MovieTicker.entity.User;
+import com.example.MovieTicker.entity.TaiKhoan;
 import com.example.MovieTicker.entity.Ve;
 import com.example.MovieTicker.entity.ChiTietDichVuVe;
 import com.example.MovieTicker.enums.InvoiceStatus;
 import com.example.MovieTicker.enums.TicketStatus;
 import com.example.MovieTicker.repository.HoaDonRepository;
+import com.example.MovieTicker.repository.TaiKhoanRepository;
+import com.example.MovieTicker.repository.VeRepository;
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
 import com.example.MovieTicker.request.PaymentRequest;
@@ -20,6 +25,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 
@@ -54,7 +61,19 @@ public class HoaDonService {
     private HoaDonRepository hoaDonRepository;
 
     @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
+
+    @Autowired
+    private VeRepository veRepository;
+
+    @Autowired
     private MomoAPI momoAPI;
+
+    @Autowired
+    private QRCodeService qrCodeService;
+
+    @Autowired
+    private EmailService emailService;
 
     public CreateMomoResponse createMoMoQR(PaymentRequest paymentRequest) {
         String orderId = paymentRequest.getOrderId();
@@ -295,25 +314,47 @@ public class HoaDonService {
             // Cập nhật trạng thái dựa trên response code
             if ("00".equals(responseCode) || "0".equals(responseCode)) {
                 hoaDon.setTrangThai(InvoiceStatus.PAID.getCode());
-                
                 // Cập nhật trạng thái tất cả vé trong hóa đơn
                 if (hoaDon.getVes() != null) {
                     for (Ve ve : hoaDon.getVes()) {
                         ve.setTrangThai(TicketStatus.PAID.getCode());
+                        try {
+                            String qrContent = qrCodeService.createTicketQRContent(
+                                ve.getMaVe(),
+                                ve.getSuatChieu().getPhim().getTenPhim(),
+                                ve.getSuatChieu().getPhongChieu().getTenPhong(),
+                                ve.getGhe().getTenGhe(),
+                                ve.getSuatChieu().getThoiGianBatDau().toString(),
+                                ve.getTrangThai()
+                            );
+                            
+                            String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
+                            System.out.println("QR Code URL for ticket " + ve.getMaVe() + ": " + qrCodeUrl);
+                            ve.setQrCodeUrl(qrCodeUrl);
+                            veRepository.save(ve);
+                            
+                        } catch (Exception e) {
+                            System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
+                        }   
+
                     }
+                }
+                HoaDon hoaDon1 = hoaDonRepository.save(hoaDon);
+                if (hoaDon1.getUser() != null && hoaDon1.getUser().getEmail() != null) {
+                    HoaDonResponse response = convertToHoaDonResponse(hoaDon1); // Tạo response từ entity
+                    emailService.sendSuccessInvoiceEmail(hoaDon1.getUser().getEmail(), response);
                 }
             } else {
                 hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
-                
-                // Cập nhật trạng thái vé thành CANCELLED
                 if (hoaDon.getVes() != null) {
                     for (Ve ve : hoaDon.getVes()) {
                         ve.setTrangThai(TicketStatus.CANCELLED.getCode());
                     }
                 }
+                hoaDonRepository.save(hoaDon);
             }
             
-            hoaDonRepository.save(hoaDon);
+           
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái thanh toán: " + e.getMessage());
         }
@@ -451,6 +492,7 @@ public class HoaDonService {
                     .trangThai(ve.getTrangThai())
                     .maHoaDon(hoaDon.getMaHD())
                     .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
+                    .qrCodeUrl(ve.getQrCodeUrl())
                     .build();
                 danhSachVeResponse.add(veResponse);
             }
@@ -511,5 +553,44 @@ public class HoaDonService {
             .expiredAt(expiredAt)
             .isExpired(isExpired)
             .build();
+    }
+
+    /**
+     * Lấy user hiện tại từ Security Context (JWT token)
+     * @return User hiện tại hoặc null nếu không có authentication
+     */
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
+            String username = authentication.getName(); // Đây là tenDangNhap từ JWT
+            
+            // Tìm TaiKhoan theo tenDangNhap
+            TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
+            if (taiKhoan != null) {
+                return taiKhoan.getUser();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lấy danh sách hóa đơn của user hiện tại
+     * @return Danh sách hóa đơn của user
+     */
+    public List<HoaDonResponse> getMyInvoices() {
+        User currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new RuntimeException("Bạn cần đăng nhập để xem danh sách hóa đơn");
+        }
+
+        List<HoaDon> hoaDonList = hoaDonRepository.findByUserOrderByNgayLapDesc(currentUser);
+        List<HoaDonResponse> responseList = new ArrayList<>();
+
+        for (HoaDon hoaDon : hoaDonList) {
+            HoaDonResponse response = getHoaDonResponseByMaHD(hoaDon.getMaHD());
+            responseList.add(response);
+        }
+
+        return responseList;
     }
 }

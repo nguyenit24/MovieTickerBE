@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 @RestController
@@ -24,7 +28,7 @@ public class DichVuDiKemController {
 
     @GetMapping("/pageable")
     public ApiResponse<Map<String, Object>> getDichVuDiKemPageable(@RequestParam(defaultValue = "1") int page,
-                            @RequestParam(defaultValue = "10") int size) {
+                            @RequestParam(defaultValue = "5") int size) {
         if (page < 1) page = 1;
         if (size < 1) size = 5;
         Pageable pageable = PageRequest.of(page - 1, size);
@@ -98,5 +102,47 @@ public class DichVuDiKemController {
                 .message("Xóa dịch vụ đi kèm thành công")
                 .build();
     }
+
+    @GetMapping("/search")
+    public ApiResponse<?> search(@RequestParam("Ten") String tenDv, @RequestParam("Danhmuc") String danhMuc, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "5") int size) {
+        if (page < 1) page = 1;
+        if (size < 1) size = 5;
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<DichVuDiKem> dvdkPage = null;
+        if (Objects.equals(danhMuc, "all"))
+            dvdkPage = service.findDichVuDiKemByTenDvContainingIgnoreCase(tenDv, pageable);
+        else dvdkPage = service.searchDichVuDiKem(tenDv, danhMuc, pageable);
+        Map<String, Object> response = Map.of(
+                "totalPages", dvdkPage.getTotalPages(),
+                "currentItems", dvdkPage.getContent(),
+                "currentPage", dvdkPage.getNumber() + 1
+        );
+        return ApiResponse.<Map<String, Object>>builder()
+                .code(200)
+                .message("Lấy danh sách dịch vụ đi kèm phân trang thành công")
+                .data(response)
+                .build();
+    }
+
+    @GetMapping("/categories")
+    public ApiResponse<?> getCategoryDichVu() {
+        List<String> categories = service.getAllCategories();
+        return ApiResponse.<List<String>>builder()
+                .code(200)
+                .message("Lấy danh sách danh mục dịch vụ đi kèm thành công")
+                .data(categories)
+                .build();
+    }
+
+    @GetMapping("/category/{tendanhmuc}")
+    public ApiResponse<?> getDichVuByCategory(@PathVariable String tendanhmuc) {
+        List<DichVuDiKem> list = service.getDichVuByCategory(tendanhmuc);
+        return ApiResponse.<List<DichVuDiKem>>builder()
+                .code(200)
+                .message("Lấy danh sách dịch vụ đi kèm theo danh mục thành công")
+                .data(list)
+                .build();
+    }
+    
 
 }

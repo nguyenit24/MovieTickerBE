@@ -28,7 +28,6 @@ public class SuatChieu {
 
     @ManyToOne
     @JoinColumn(name = "MaPhim")
-    @JsonIgnore
     private Phim phim;
 
     @ManyToOne

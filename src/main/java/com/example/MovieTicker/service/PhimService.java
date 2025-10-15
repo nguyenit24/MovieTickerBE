@@ -115,8 +115,8 @@ public class PhimService {
         phimRepository.delete(phim);
     }
 
-    public List<Phim> searchPhimByTen(String keyword) {
-        return phimRepository.findByTenPhimContainingIgnoreCase(keyword);
+    public Page<Phim> searchPhimByTen(String keyword, Pageable pageable) {
+        return phimRepository.findByKeyword(keyword, pageable);
     }
 
     

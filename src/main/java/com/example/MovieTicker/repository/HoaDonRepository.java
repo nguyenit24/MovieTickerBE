@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.example.MovieTicker.entity.HoaDon;
+import com.example.MovieTicker.entity.User;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     
@@ -16,4 +17,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     
     @Query("SELECT h FROM HoaDon h WHERE h.trangThai = 'PROCESSING' AND h.ngayLap < :expiredTime")
     List<HoaDon> findExpiredProcessingInvoices(@Param("expiredTime") LocalDateTime expiredTime);
+    
+
+    List<HoaDon> findByUserOrderByNgayLapDesc(User user);
 }
