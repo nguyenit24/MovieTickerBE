@@ -484,18 +484,15 @@ public class HoaDonService {
         }
     }
     
-    /**
-     * Convert HoaDon entity sang HoaDonResponse với đầy đủ thông tin
-     */
+   
     private HoaDonResponse convertToHoaDonResponse(HoaDon hoaDon) {
-        // Convert danh sách vé
         List<VeResponse> danhSachVeResponse = new ArrayList<>();
         if (hoaDon.getVes() != null) {
             for (Ve ve : hoaDon.getVes()) {
                 // Parse tenGhe để lấy hàng và số
                 String tenGhe = ve.getGhe().getTenGhe();
-                String hangGhe = tenGhe.substring(0, 1); // A, B, C...
-                String soGhe = tenGhe.substring(1); // 01, 02, 03...
+                String hangGhe = tenGhe.substring(0, 1); 
+                String soGhe = tenGhe.substring(1); 
                 
                 VeResponse veResponse = VeResponse.builder()
                     .maVe(ve.getMaVe())
@@ -519,7 +516,6 @@ public class HoaDonService {
             }
         }
         
-        // Convert danh sách dịch vụ đi kèm từ tất cả các vé
         List<DichVuResponse> danhSachDichVuResponse = new ArrayList<>();
         if (hoaDon.getVes() != null) {
             for (Ve ve : hoaDon.getVes()) {

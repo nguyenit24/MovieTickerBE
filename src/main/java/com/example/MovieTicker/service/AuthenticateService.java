@@ -17,10 +17,7 @@ import com.example.MovieTicker.repository.InvalidatedRepository;
 import com.example.MovieTicker.repository.PasswordResetTokenRepository;
 import com.example.MovieTicker.repository.TaiKhoanRepository;
 import com.example.MovieTicker.repository.UserRepository;
-import com.example.MovieTicker.request.AuthenticateRequest;
-import com.example.MovieTicker.request.ForgotPasswordRequest;
-import com.example.MovieTicker.request.IntrospectRequest;
-import com.example.MovieTicker.request.ResetPasswordRequest;
+import com.example.MovieTicker.request.*;
 import com.example.MovieTicker.response.AuthenticateResponse;
 import com.example.MovieTicker.response.IntrospectResponse;
 import lombok.RequiredArgsConstructor;
@@ -83,15 +80,21 @@ public class AuthenticateService {
                         .refreshToken(refreshToken)
                         .build();
     }
-    public AuthenticateResponse refreshToken(IntrospectRequest request) throws ParseException, JOSEException{
+    public AuthenticateResponse refreshToken(IntrospectRequest request) throws ParseException, JOSEException {
+        // 1. Xác thực refresh token cũ
         var signedJWT = verifyToken(request.getToken());
         var username = signedJWT.getJWTClaimsSet().getSubject();
-        var taiKhoan = taiKhoanRepository.findById(username).orElseThrow(() ->
-                new AppException(ErrorCode.UNTHENTICATED));
+        var taiKhoan = taiKhoanRepository.findById(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNTHENTICATED));
+
+        // 2. Tạo access token và refresh token MỚI
         var accessToken = generateToken(taiKhoan, 3600 * 1000); // 1 giờ
         var newRefreshToken = generateToken(taiKhoan, 3600 * 24 * 7 * 1000); // 7 ngày
-        // Vô hiệu hóa refresh token cũ
-        logout(request);
+
+        // 3. Vô hiệu hóa refresh token CŨ bằng hàm nội bộ
+        invalidateToken(request.getToken());
+
+        // 4. Trả về cặp token mới
         return AuthenticateResponse.builder()
                 .authenticated(true)
                 .accessToken(accessToken)
@@ -127,12 +130,31 @@ public class AuthenticateService {
         taiKhoanRepository.save(taiKhoan);
         passwordResetTokenRepository.delete(resetToken);
     }
-    public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException {
+    public IntrospectResponse introspect(IntrospectRequest request) {
         var token = request.getToken();
-        boolean isValid = true;
-        try{
-            verifyToken(token); // Đổi tên hàm cho rõ nghĩa
-        } catch (Exception e){
+        boolean isValid = false; // Mặc định là không hợp lệ
+        try {
+            // Sử dụng verifier đã được tạo từ signerKey
+            JWSVerifier verifier = new MACVerifier(singerKey.getBytes());
+            SignedJWT signedJWT = SignedJWT.parse(token);
+
+            // 1. Kiểm tra chữ ký
+            boolean signatureVerified = signedJWT.verify(verifier);
+
+            // 2. Kiểm tra hạn sử dụng
+            boolean expired = signedJWT.getJWTClaimsSet().getExpirationTime().before(new Date());
+
+            // 3. Kiểm tra trong database xem token đã bị vô hiệu hóa chưa
+            String jit = signedJWT.getJWTClaimsSet().getJWTID();
+            boolean invalidated = invalidatedTokenRepository.existsById(jit);
+
+            // Token chỉ hợp lệ khi tất cả các điều kiện đều đúng
+            if (signatureVerified && !expired && !invalidated) {
+                isValid = true;
+            }
+        } catch (Exception e) {
+            // Nếu có bất kỳ lỗi nào trong quá trình parse hoặc verify, token không hợp lệ
+            log.error("Introspect token error: {}", e.getMessage());
             isValid = false;
         }
         return IntrospectResponse.builder()
@@ -162,33 +184,45 @@ public class AuthenticateService {
         }
     }
 
-    public void logout(IntrospectRequest logoutRequest) throws JOSEException, ParseException {
-        var token =  verifyToken(logoutRequest.getToken());
-
-        InvalidatedToken invalidatedToken = InvalidatedToken.builder()
-                .id(token.getJWTClaimsSet().getJWTID())
-                .expiryDate(token.getJWTClaimsSet().getExpirationTime())
-                .build();
-
-        invalidatedTokenRepository.save(invalidatedToken);
+    public void logout(LogoutRequest logoutRequest) {
+        // Vô hiệu hóa cả hai token
+        invalidateToken(logoutRequest.getAccessToken());
+        invalidateToken(logoutRequest.getRefreshToken());
     }
 
-    // Đổi tên hàm từ signedJWT thành verifyToken cho rõ nghĩa hơn
-    private SignedJWT verifyToken(String token) throws ParseException, JOSEException {
+    private SignedJWT verifyToken(String token) throws ParseException, JOSEException, AppException {
         JWSVerifier verifier = new MACVerifier(singerKey.getBytes());
         SignedJWT signedJWT = SignedJWT.parse(token);
         Date expirationTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-        var verified = signedJWT.verify(verifier);
-
-        if(!(verified && expirationTime.after(new Date()))){
+        boolean verified = signedJWT.verify(verifier);
+        // Chỉ kiểm tra chữ ký và token còn hạn hay không
+        if (!(verified && expirationTime.after(new Date()))) {
             throw new AppException(ErrorCode.UNTHENTICATED);
         }
-
-        if(invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID())){
-            throw new AppException(ErrorCode.UNTHENTICATED);
-        }
-
         return signedJWT;
+    }
+
+    private void invalidateToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return; // Bỏ qua nếu token rỗng
+        }
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            String jit = signedJWT.getJWTClaimsSet().getJWTID();
+            Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+
+            InvalidatedToken invalidatedToken = InvalidatedToken.builder()
+                    .id(jit)
+                    .expiryDate(expiryTime)
+                    .build();
+
+            invalidatedTokenRepository.save(invalidatedToken);
+
+        } catch (ParseException e) {
+            log.error("Error while invalidating token: {}", e.getMessage());
+            // Có thể bỏ qua lỗi parse vì token có thể không hợp lệ,
+            // mục đích chính là cố gắng vô hiệu hóa nó nếu có thể.
+        }
     }
 
     // **Đây là phần quan trọng nhất: Sửa lại để phù hợp với mô hình 1 vai trò**

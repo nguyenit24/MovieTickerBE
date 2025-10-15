@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -386,7 +387,7 @@ public class VeService {
     }
 
 
-    public java.util.Map<String, Object> searchVe(String tenKhachHang, String tenPhim, Integer nam, 
+    public Map<String, Object> searchVe(String tenKhachHang, String tenPhim, Integer nam, 
                                                    Integer thang, String trangThai, String maHoaDon,
                                                    int page, int size) {
       
