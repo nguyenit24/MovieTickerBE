@@ -56,7 +56,7 @@ public class PhongChieuController {
            .build();
    }
    
-   @GetMapping("/{id}")
+   @GetMapping("/{id}/ghe")
    public ApiResponse<?> getPhongChieuById(@PathVariable String id) {
        PhongChieu phongChieu = phongChieuService.getPhongChieuById(id);
        if (phongChieu != null) {

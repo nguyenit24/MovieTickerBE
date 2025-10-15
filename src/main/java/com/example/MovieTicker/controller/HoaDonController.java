@@ -8,6 +8,7 @@ import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.CreateMomoResponse;
 import com.example.MovieTicker.response.HoaDonResponse;
+import com.example.MovieTicker.response.HoaDonSatisticResponse;
 import com.example.MovieTicker.service.HoaDonService;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -33,7 +34,7 @@ public class HoaDonController {
     @PostMapping("/vn_pay/create")
     public ApiResponse<?> createPaymentVnPay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Validate hóa đơn trước khi tạo payment
+            // Validate hóa đơntrước khi tạo payment
             invoiceService.validateInvoiceForPayment(paymentRequest.getOrderId());
             
             String paymentUrl = invoiceService.createVnPayRequest(paymentRequest, request, response);
@@ -277,24 +278,23 @@ public class HoaDonController {
             );
         }
     }
-    
- 
 
     @GetMapping("/all")
     public ApiResponse<?> getAllInvoices() {
         try {
             List<HoaDon> invoices = invoiceService.getAllHoaDon();
-            return new ApiResponse<>(
-                    HttpStatus.OK.value(),
-                    "Lấy danh sách hóa đơn thành công",
-                    invoices
-            );
+            System.out.println(invoices);
+            return ApiResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy hóa đơn thành công")
+                    .data(invoices)
+                    .build();
         } catch (Exception e) {
-            return new ApiResponse<>(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
-                    null
-            );
+            return ApiResponse.builder()
+                    .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                    .message("Lấy hóa đơn thất bại")
+                    .data("Không biết sao lỗi luôn :V")
+                    .build();
         }
     }
 
@@ -333,6 +333,25 @@ public class HoaDonController {
                     "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
                     null
             );
+        }
+    }
+
+    @GetMapping()
+    public ApiResponse<?> getAllHoaDon() {
+        try {
+            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonResponse();
+            return ApiResponse.<List<HoaDonSatisticResponse>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Thành công")
+                    .data(listHoaDon)
+                    .build();
+        }
+        catch (Error e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Đã có lỗi xảy ra")
+                    .data(e.getMessage())
+                    .build();
         }
     }
 }

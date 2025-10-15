@@ -3,6 +3,7 @@ package com.example.MovieTicker.entity;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,10 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.validation.constraints.Email;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Data
@@ -42,5 +40,17 @@ public class User {
     private LocalDate ngaySinh;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<TaiKhoan> taiKhoan;
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "maUser=" + maUser +
+                ", hoTen='" + hoTen + '\'' +
+                ", email='" + email + '\'' +
+                ", sdt='" + sdt + '\'' +
+                ", ngaySinh=" + ngaySinh +
+                '}'; // KHÔNG include taiKhoan
+    }
 }

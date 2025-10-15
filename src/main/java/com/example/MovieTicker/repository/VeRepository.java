@@ -2,6 +2,7 @@ package com.example.MovieTicker.repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +13,18 @@ import com.example.MovieTicker.enums.TicketStatus;
 
 public interface VeRepository extends JpaRepository<Ve, String> {
     List<Ve> findBySuatChieuMaSuatChieuAndGheMaGheIn(String maSc, List<String> maGheList);
-    
+
+    @Query("""
+    SELECT CASE WHEN COUNT(v) > 0 THEN true ELSE false END
+    FROM Ve v
+    WHERE v.ghe.maGhe = :maGhe
+      AND v.suatChieu.thoiGianBatDau > :now
+""")
+    boolean existsTicketForSeatAndFutureShowtime(
+            @Param("maGhe") String maGhe,
+            @Param("now") LocalDateTime now
+    );
+
     @Query("SELECT v FROM Ve v WHERE v.suatChieu.maSuatChieu = :maSuatChieu")
     List<Ve> findBySuatChieuMaSuatChieu(@Param("maSuatChieu") String maSuatChieu);
     
@@ -30,4 +42,5 @@ public interface VeRepository extends JpaRepository<Ve, String> {
     @Deprecated
     @Query("SELECT v FROM Ve v WHERE v.suatChieu.maSuatChieu = :maSuatChieu AND v.ghe.maGhe IN :maGheList AND v.trangThai = 'PROCESSING' AND v.ngayDat < :expiredTime")
     List<Ve> findExpiredProcessingTickets(@Param("maSuatChieu") String maSuatChieu, @Param("maGheList") List<String> maGheList, @Param("expiredTime") LocalDateTime expiredTime);
+
 }

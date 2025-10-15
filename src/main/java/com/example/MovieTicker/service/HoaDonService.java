@@ -16,10 +16,7 @@ import com.example.MovieTicker.repository.VeRepository;
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
 import com.example.MovieTicker.request.PaymentRequest;
-import com.example.MovieTicker.response.CreateMomoResponse;
-import com.example.MovieTicker.response.HoaDonResponse;
-import com.example.MovieTicker.response.VeResponse;
-import com.example.MovieTicker.response.DichVuResponse;
+import com.example.MovieTicker.response.*;
 import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -592,5 +589,10 @@ public class HoaDonService {
         }
 
         return responseList;
+    }
+
+    public List<HoaDonSatisticResponse> getAllHoaDonResponse() {
+        List<HoaDonSatisticResponse> hoaDonList = hoaDonRepository.findAllHoaDonPaid();
+        return hoaDonList;
     }
 }

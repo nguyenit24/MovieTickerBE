@@ -15,6 +15,7 @@ public class VaiTro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int vaiTroId;
     private String tenVaiTro;
+
     @OneToMany(mappedBy = "vaiTro", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TaiKhoan> taiKhoans;
     @ManyToMany

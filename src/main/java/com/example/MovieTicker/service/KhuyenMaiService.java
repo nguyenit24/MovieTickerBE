@@ -33,9 +33,9 @@ public class KhuyenMaiService {
         return khuyenMaiRepository.findByKeyword(keyword);
     }
 
-    // public Page<KhuyenMai> searchKhuyenMaiPageable(String keyword, Pageable pageable) {
-    //     return khuyenMaiRepository.findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(keyword,pageable);
-    // }
+    public Page<KhuyenMai> searchKhuyenMaiPageable(String keyword, Pageable pageable) {
+        return khuyenMaiRepository.findKhuyenMaisByTenKmContainingIgnoreCaseAndMaCodeContainingIgnoreCase(keyword, keyword, pageable);
+    }
     
     public KhuyenMai createKhuyenMai(KhuyenMaiRequest request) {
         if (request.getNgayKetThuc().isBefore(request.getNgayBatDau())) {

@@ -93,7 +93,7 @@ public class KhuyenMaiController {
     }
 
 
-    @GetMapping("/search")
+    @GetMapping("/search/pageable")
     public ResponseEntity<ApiResponse<?>> searchKhuyenMai(@RequestParam String keyword, @RequestParam(defaultValue = "1") int page) {
         try {
             List<KhuyenMai> khuyenMaiList = khuyenMaiService.searchKhuyenMai(keyword);
@@ -192,7 +192,7 @@ public class KhuyenMaiController {
                             @RequestParam(defaultValue = "10") int size) {
         try {
             if (page < 1) page = 1;
-            if (size < 1) size = 5;
+            if (size < 1) size = 10;
             Pageable pageable = PageRequest.of(page - 1, size);
             Page<KhuyenMai> khuyenMaiPage = khuyenMaiService.getKhuyenMaiPage(pageable);
             Map<String, Object> response = Map.of(

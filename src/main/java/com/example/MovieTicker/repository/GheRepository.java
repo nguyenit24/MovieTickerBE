@@ -2,6 +2,7 @@ package com.example.MovieTicker.repository;
 
 import com.example.MovieTicker.entity.Ghe;
 import com.example.MovieTicker.entity.PhongChieu;
+import com.example.MovieTicker.response.GheResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,10 @@ public interface GheRepository extends JpaRepository<Ghe, String> {
     @Override
     @NonNull
     Page<Ghe> findAll(@NonNull Pageable pageable);
+
+
+    @Query("""
+        SELECT g.maGhe, g.phongChieu.maPhongChieu, g.phongChieu.tenPhong, g.loaiGhe.maLoaiGhe FROM Ghe g
+    """)
+    List<GheResponse> findGheByLoaiGheAndPhongChieu();
 }

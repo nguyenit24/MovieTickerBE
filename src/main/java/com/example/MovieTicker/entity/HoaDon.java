@@ -35,6 +35,7 @@ public class HoaDon {
 
     @ManyToOne
     @JoinColumn(name = "ma_user", nullable = true)
+    @JsonIgnore
     private User user;
 
     private LocalDateTime ngayLap;
