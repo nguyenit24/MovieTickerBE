@@ -43,11 +43,24 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    public void sendOtpEmail(String to, String otp) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Xác Thực Tài Khoản Cinema");
+        String emailBody = "Chào bạn,\n\n"
+                + "Cảm ơn bạn đã đăng ký tài khoản tại Cinema.\n"
+                + "Mã OTP của bạn là: " + otp + "\n\n"
+                + "Mã này sẽ hết hạn sau 1 phút.\n\n"
+                + "Trân trọng,\n"
+                + "Đội ngũ Cinema.";
+        message.setText(emailBody);
+        mailSender.send(message);
+    }
+
     public void sendSuccessInvoiceEmail(String to, HoaDonResponse invoiceDetails) {
         System.out.println("=== START SENDING EMAIL ===");
         System.out.println("To: " + to);
         System.out.println("Invoice: " + (invoiceDetails != null ? invoiceDetails.getMaHD() : "null"));
-        
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");

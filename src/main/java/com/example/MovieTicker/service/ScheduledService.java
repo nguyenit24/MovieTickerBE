@@ -3,6 +3,7 @@ package com.example.MovieTicker.service;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.example.MovieTicker.repository.PendingRegistrationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,8 @@ public class ScheduledService {
     
     @Autowired
     private HoaDonRepository hoaDonRepository;
+    @Autowired
+    private PendingRegistrationRepository pendingRepo;
     
     /**
      * Chạy mỗi 2 phút để kiểm tra và cập nhật hóa đơn hết hạn
@@ -95,5 +98,16 @@ public class ScheduledService {
         } catch (Exception e) {
             logger.error("Lỗi khi detailed cleanup: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * Tác vụ này sẽ chạy mỗi giờ để xóa các yêu cầu đăng ký đã hết hạn.
+     * (cron = "giây phút giờ ngày tháng ngày_trong_tuần")
+     */
+    @Scheduled(cron = "0 0 * * * ?") // Chạy vào đầu mỗi giờ
+    @Transactional
+    public void cleanupExpiredRegistrations() {
+        pendingRepo.deleteByExpiryDateBefore(LocalDateTime.now());
+        logger.info("Cleaned up expired pending registrations.");
     }
 }

@@ -32,6 +32,8 @@ public class WebSecurityConfig {
             "/v3/api-docs/**",
             "/api/auth/refresh",
             "/api/auth/forgot-password",
+            "/api/auth/verify-otp",
+            "/api/auth/resend-otp",
             "/api/auth/reset-password",
             "/api/payment/**",
             "/api/ve/**", 
@@ -39,7 +41,7 @@ public class WebSecurityConfig {
             "/api/khuyenmai/**",
             "/api/danhgiaphim/**",
             "/api/loaighe/**",
-            
+            "/api/auth/google",
     };
 
     @Autowired
