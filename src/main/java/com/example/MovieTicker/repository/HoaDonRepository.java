@@ -50,8 +50,9 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     @Query("""
     SELECT new com.example.MovieTicker.response.PhimStatisticResponse(
         p.tenPhim,
-        s.thoiGianBatDau,
-        COUNT(v)
+        COUNT(s),
+        SUM(h.tongTien),
+        s.thoiGianBatDau
     )
     FROM HoaDon h
     JOIN h.ves v

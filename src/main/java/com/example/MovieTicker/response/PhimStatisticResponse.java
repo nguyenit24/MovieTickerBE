@@ -4,12 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class PhimStatisticResponse {
     private String tenPhim;
-    private String soLuongSuatChieu;
-    private String tongDoanhThu;
-    private String thoiGian;
+    private Long soLuongSuatChieu;
+    private Double tongDoanhThu;
+    private LocalDateTime thoiGian;
 }
