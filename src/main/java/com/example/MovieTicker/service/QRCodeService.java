@@ -96,7 +96,7 @@ public class QRCodeService {
      * @return Nội dung QR code dạng JSON
      */
     public String createTicketQRContent(String maVe, String tenPhim, String tenPhongChieu,
-                                          String tenGhe, String thoiGianChieu, String trangThai) {
+                                          String tenGhe, String thoiGianChieu, String trangThai, String tenKH, String sdt) {
         return String.format(
             "{\n" +
             "  \"maVe\": \"%s\",\n" +
@@ -105,9 +105,11 @@ public class QRCodeService {
             "  \"ghe\": \"%s\",\n" +
             "  \"thoiGian\": \"%s\",\n" +
             "  \"trangThai\": \"%s\",\n" +
+            "  \"tenKH\": \"%s\",\n" +
+            "  \"sdt\": \"%s\",\n" +
             "  \"type\": \"MovieTicket\"\n" +
             "}",
-            maVe, tenPhim, tenPhongChieu, tenGhe, thoiGianChieu, trangThai
+            maVe, tenPhim, tenPhongChieu, tenGhe, thoiGianChieu, trangThai, tenKH, sdt
         );
     }
 }

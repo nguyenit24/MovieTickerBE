@@ -23,6 +23,8 @@ import com.example.MovieTicker.response.DichVuResponse;
 import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -41,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 public class HoaDonService {
@@ -297,6 +301,7 @@ public class HoaDonService {
         }
     }
 
+    @Transactional
     public void updatePaymentStatus(String orderId, String transactionNo, String transactionDate, String responseCode) {
         try {
             HoaDon hoaDon = getHoaDonByMaHD(orderId);
@@ -325,7 +330,9 @@ public class HoaDonService {
                                 ve.getSuatChieu().getPhongChieu().getTenPhong(),
                                 ve.getGhe().getTenGhe(),
                                 ve.getSuatChieu().getThoiGianBatDau().toString(),
-                                ve.getTrangThai()
+                                ve.getTrangThai(),
+                                hoaDon.getTenKhachHang() != null ? hoaDon.getTenKhachHang() : (hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : "Khach vang lai"),
+                                hoaDon.getSdtKhachHang() != null ? hoaDon.getSdtKhachHang() : (hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : "Chua cap nhat")
                             );
                             
                             String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
@@ -340,9 +347,19 @@ public class HoaDonService {
                     }
                 }
                 HoaDon hoaDon1 = hoaDonRepository.save(hoaDon);
+                
+                // Gửi email cho cả user đăng nhập và khách vãng lai
+                HoaDonResponse response = convertToHoaDonResponse(hoaDon1);
+                String emailTo = null;
+                
                 if (hoaDon1.getUser() != null && hoaDon1.getUser().getEmail() != null) {
-                    HoaDonResponse response = convertToHoaDonResponse(hoaDon1); // Tạo response từ entity
-                    emailService.sendSuccessInvoiceEmail(hoaDon1.getUser().getEmail(), response);
+                    emailTo = hoaDon1.getUser().getEmail();
+                } else if (hoaDon1.getEmailKhachHang() != null && !hoaDon1.getEmailKhachHang().trim().isEmpty()) {
+                    emailTo = hoaDon1.getEmailKhachHang();
+                }
+                
+                if (emailTo != null) {
+                    emailService.sendSuccessInvoiceEmail(emailTo, response);
                 }
             } else {
                 hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
@@ -367,7 +384,11 @@ public class HoaDonService {
         if (hoaDon == null || hoaDon.getNgayLap() == null) {
             return true;
         }
-        
+        // Nếu hóa đơn đã được thanh toán thì không coi là expired
+        if (InvoiceStatus.PAID.getCode().equals(hoaDon.getTrangThai())) {
+            return false;
+        }
+
         LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(10);
         return hoaDon.getNgayLap().isBefore(expiredTime);
     }
@@ -552,6 +573,9 @@ public class HoaDonService {
             .soLuongVe(danhSachVeResponse.size())
             .expiredAt(expiredAt)
             .isExpired(isExpired)
+            .tenKhachHang(hoaDon.getTenKhachHang())
+            .sdtKhachHang(hoaDon.getSdtKhachHang())
+            .emailKhachHang(hoaDon.getEmailKhachHang())
             .build();
     }
 
@@ -592,5 +616,77 @@ public class HoaDonService {
         }
 
         return responseList;
+    }
+
+
+    public Map<String, Object> searchHoaDon(String tenKhachHang, Integer nam, Integer thang, 
+                                            String trangThai, int page, int size) {
+        Long totalUserNotLogin = 0L;
+        List<HoaDon> allHoaDon = hoaDonRepository.findAll();
+        List<HoaDon> filteredHoaDon = allHoaDon.stream()
+            .filter(hd -> {
+                if (tenKhachHang != null && !tenKhachHang.trim().isEmpty()) {
+                    String searchTerm = tenKhachHang.toLowerCase();
+                    boolean matchUser = hd.getUser() != null && 
+                                       hd.getUser().getHoTen() != null && 
+                                       hd.getUser().getHoTen().toLowerCase().contains(searchTerm);
+                    boolean matchGuest = hd.getTenKhachHang() != null && 
+                                        hd.getTenKhachHang().toLowerCase().contains(searchTerm);
+                    if (!matchUser && !matchGuest) {
+                        return false;
+                    }
+                }
+                if (nam != null && hd.getNgayLap() != null) {
+                    if (hd.getNgayLap().getYear() != nam) {
+                        return false;
+                    }
+                }
+                if (thang != null && hd.getNgayLap() != null) {
+                    if (hd.getNgayLap().getMonthValue() != thang) {
+                        return false;
+                    }
+                }
+                if (trangThai != null && !trangThai.trim().isEmpty()) {
+                    if (!trangThai.equals(hd.getTrangThai())) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            })
+            .sorted((hd1, hd2) -> hd2.getNgayLap().compareTo(hd1.getNgayLap())) 
+            .collect(Collectors.toList());
+        double tongDoanhThu = filteredHoaDon.stream()
+            .filter(hd -> "PAID".equals(hd.getTrangThai()))
+            .mapToDouble(HoaDon::getTongTien)
+            .sum();
+        
+        int totalItems = filteredHoaDon.size();
+        int totalPages = (int) Math.ceil((double) totalItems / size);
+        int startIndex = (page - 1) * size;
+        int endIndex = Math.min(startIndex + size, totalItems);
+        
+        List<HoaDon> pagedHoaDon = new ArrayList<>();
+        if (startIndex < totalItems) {
+            pagedHoaDon = filteredHoaDon.subList(startIndex, endIndex);
+        }
+        
+        List<HoaDonResponse> hoaDonResponseList = new ArrayList<>();
+        for (HoaDon hoaDon : pagedHoaDon) {
+            if (hoaDon.getUser() == null) {
+                totalUserNotLogin++;
+            }
+            hoaDonResponseList.add(convertToHoaDonResponse(hoaDon));
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("items", hoaDonResponseList);
+        response.put("currentPage", page);
+        response.put("totalPages", totalPages);
+        response.put("totalItems", (long) totalItems);
+        response.put("itemsPerPage", size);
+        response.put("tongDoanhThu", tongDoanhThu);
+        response.put("totalUserNotLogin", totalUserNotLogin);
+        return response;
     }
 }

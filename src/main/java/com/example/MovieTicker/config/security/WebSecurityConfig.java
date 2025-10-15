@@ -25,13 +25,20 @@ public class WebSecurityConfig {
             "/api/auth/logout",
             "/api/phim/**", // Cho phép GET phim
             "/api/theloai/**", // Cho phép GET thể loại
+            "/api/suatchieu/**", // Cho phép xem suất chiếu
+            "/api/ghe/**", // Cho phép xem ghế
+            "/api/dichvudikem/**", // Cho phép xem dịch vụ
             "/swagger-ui/**", // Cho phép truy cập Swagger UI
             "/v3/api-docs/**",
             "/api/auth/refresh",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
-            "/api/payment/vn_pay/payment_info",
-            "/uploads/**"
+            "/api/payment/**",
+            "/api/ve/**", 
+            "/uploads/**",
+            "/api/khuyenmai/**",
+            "/api/danhgiaphim/**",
+            "/api/loaighe/**",
             
     };
 
@@ -42,8 +49,8 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers( PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/phim/**", "/api/theloai/**").permitAll() // Cho phép xem phim, thể loại
+                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/phim/**", "/api/theloai/**","/api/loaighe/**").permitAll() // Cho phép xem phim, thể loại
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable());

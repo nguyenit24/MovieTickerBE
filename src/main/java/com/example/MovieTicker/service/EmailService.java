@@ -4,6 +4,7 @@ import com.example.MovieTicker.entity.PasswordResetToken;
 import com.example.MovieTicker.response.HoaDonResponse;
 import com.example.MovieTicker.response.VeResponse;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 
@@ -15,6 +16,8 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import java.io.*;
 import java.net.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 
 @Service
@@ -40,187 +43,293 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    public void sendSuccessInvoiceEmail(String to, HoaDonResponse invoiceDetails) throws Exception {
+    public void sendSuccessInvoiceEmail(String to, HoaDonResponse invoiceDetails) {
+        System.out.println("=== START SENDING EMAIL ===");
+        System.out.println("To: " + to);
+        System.out.println("Invoice: " + (invoiceDetails != null ? invoiceDetails.getMaHD() : "null"));
+        
         try {
-            System.out.println("=== BẮT ĐẦU GỬI EMAIL ===");
-            System.out.println("To: " + to);
-            System.out.println("Invoice: " + invoiceDetails.getMaHD());
-
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_RELATED, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(to);
-            helper.setSubject("Hóa Đơn Mua Vé");
             helper.setFrom("noreply@cinema.com");
+            helper.setSubject("🎬 Hóa Đơn Mua Vé - Cinema");
+            
+            System.out.println("Building email HTML...");
+            String htmlContent = buildEmailHTML(invoiceDetails);
+            helper.setText(htmlContent, true);
+            System.out.println("✓ HTML content built successfully");
 
-            StringBuilder html = new StringBuilder();
-            html.append("<!DOCTYPE html>");
-            html.append("<html>");
-            html.append("<head><meta charset='UTF-8'></head>");
-            html.append("<body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>");
-            html.append("<div style='max-width: 600px; margin: 0 auto; padding: 20px;'>");
-
-            html.append("<h3 style='color: #2c3e50;'>Chào bạn,</h3>");
-            html.append("<p>Cảm ơn bạn đã mua vé tại Cinema. Dưới đây là chi tiết hóa đơn của bạn:</p>");
-
-            html.append("<div style='background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;'>");
-            html.append("<ul style='list-style: none; padding: 0;'>");
-            html.append("<li style='margin: 10px 0;'><b>Mã hóa đơn:</b> ").append(invoiceDetails.getMaHD()).append("</li>");
-            html.append("<li style='margin: 10px 0;'><b>Ngày lập:</b> ").append(invoiceDetails.getNgayLap()).append("</li>");
-            html.append("<li style='margin: 10px 0;'><b>Tổng tiền:</b> ").append(invoiceDetails.getTongTien()).append(" VNĐ</li>");
-            html.append("<li style='margin: 10px 0;'><b>Phương thức thanh toán:</b> ").append(invoiceDetails.getPhuongThucThanhToan()).append("</li>");
-            html.append("</ul>");
-            html.append("</div>");
-
-            // Thông tin vé
+            // Attach QR codes
             if (invoiceDetails.getDanhSachVe() != null && !invoiceDetails.getDanhSachVe().isEmpty()) {
-                System.out.println("Số lượng vé: " + invoiceDetails.getDanhSachVe().size());
-                html.append("<h4 style='color: #2c3e50; margin-top: 30px;'>Thông tin vé:</h4>");
-
-                int qrIndex = 0;
+                System.out.println("Attaching QR codes for " + invoiceDetails.getDanhSachVe().size() + " tickets");
+                int index = 0;
                 for (VeResponse ve : invoiceDetails.getDanhSachVe()) {
-                    System.out.println("Xử lý vé: " + ve.getMaVe());
-
-                    html.append("<div style='border: 1px solid #ddd; padding: 15px; margin: 15px 0; border-radius: 5px; background: white;'>");
-                    html.append("<p style='margin: 5px 0;'><b>Mã vé:</b> ").append(ve.getMaVe()).append("</p>");
-                    html.append("<p style='margin: 5px 0;'><b>Tên phim:</b> ").append(ve.getTenPhim()).append("</p>");
-                    html.append("<p style='margin: 5px 0;'><b>Ghế:</b> ").append(ve.getTenGhe()).append("</p>");
-                    html.append("<p style='margin: 5px 0;'><b>Thời gian chiếu:</b> ").append(ve.getThoiGianChieu()).append("</p>");
-
-                    // Nhúng QR code
+                    System.out.println("  - Ticket " + index + ": " + ve.getMaVe());
                     if (ve.getQrCodeUrl() != null && !ve.getQrCodeUrl().isEmpty()) {
-                        String contentId = "qrcode" + qrIndex;
-                        html.append("<div style='margin-top: 15px; text-align: center;'>");
-                        html.append("<p style='margin: 10px 0; font-weight: bold;'>Mã QR của bạn:</p>");
-                        html.append("<img src='cid:").append(contentId).append("' alt='QR Code' style='width:200px; height:200px; border: 2px solid #ddd; padding: 10px; background: white;'/>");
-                        html.append("</div>");
-
-                        // Đính kèm ảnh QR code
-                        attachQRCodeImage(helper, ve.getQrCodeUrl(), contentId, ve.getMaVe());
-                        qrIndex++;
+                        System.out.println("    QR URL: " + ve.getQrCodeUrl());
+                        attachQRCode(helper, ve.getQrCodeUrl(), "qr" + index);
                     } else {
-                        System.out.println("WARNING - QR Code URL is null or empty for ticket: " + ve.getMaVe());
-                        html.append("<p style='color: red; margin-top: 15px;'>Mã QR không khả dụng. Vui lòng liên hệ hỗ trợ.</p>");
+                        System.out.println("    ⚠ No QR code URL");
                     }
-                    html.append("</div>");
+                    index++;
                 }
             } else {
-                System.out.println("WARNING - Danh sách vé rỗng hoặc null");
-                html.append("<p style='color: red;'>Không có thông tin vé. Vui lòng liên hệ hỗ trợ.</p>");
+                System.out.println("⚠ No tickets found in invoice");
             }
 
-            html.append("<p style='margin-top: 30px;'>Chúng tôi hy vọng bạn sẽ có những trải nghiệm tuyệt vời tại rạp chiếu phim của chúng tôi.</p>");
-            html.append("<p style='color: #666; margin-top: 20px;'>Trân trọng,<br><b>Đội ngũ Cinema</b></p>");
-
-            html.append("</div>");
-            html.append("</body>");
-            html.append("</html>");
-
-            helper.setText(html.toString(), true);
-
-            System.out.println("Đang gửi email...");
-            System.out.println("HTML length: " + html.length());
+            System.out.println("Sending email...");
             mailSender.send(message);
-            System.out.println("=== GỬI EMAIL THÀNH CÔNG ===");
-        } catch (Exception e) {
-            System.err.println("=== LỖI GỬI EMAIL ===");
-            System.err.println("Lỗi gửi email hóa đơn: " + e.getMessage());
+            System.out.println("✓ Email sent successfully to: " + to);
+            System.out.println("=== EMAIL SENT SUCCESSFULLY ===\n");
+        } catch (MessagingException e) {
+            System.err.println("✗ MessagingException: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Không thể gửi email hóa đơn: " + invoiceDetails.getMaHD(), e);
+            throw new RuntimeException("Không thể gửi email cho: " + to, e);
+        } catch (Exception e) {
+            System.err.println("✗ Failed to send email: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Không thể gửi email cho: " + to, e);
         }
     }
 
-    private void attachQRCodeImage(MimeMessageHelper helper, String qrCodeUrl, String contentId, String maVe) throws Exception {
+    // ============= BUILD HTML EMAIL =============
+    private String buildEmailHTML(HoaDonResponse invoice) {
+        System.out.println("  Building HTML for invoice: " + invoice.getMaHD());
+        StringBuilder html = new StringBuilder();
+        
+        html.append("<!DOCTYPE html>")
+            .append("<html><head><meta charset='UTF-8'></head>")
+            .append("<body style='margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif'>")
+            .append("<div style='max-width:600px;margin:30px auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1)'>");
+
+        // Header
+        html.append("<div style='background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:30px;text-align:center'>")
+            .append("<h1 style='color:#fff;margin:0;font-size:28px'>🎬 Cinema</h1>")
+            .append("<p style='color:#fff;margin:10px 0 0;opacity:0.9'>Cảm ơn bạn đã đặt vé</p>")
+            .append("</div>");
+
+        // Invoice Info
+        html.append("<div style='padding:30px'>")
+            .append("<h2 style='color:#333;margin:0 0 20px;font-size:20px'>Thông tin hóa đơn</h2>")
+            .append("<table style='width:100%;border-collapse:collapse'>")
+            .append(buildInfoRow("Mã hóa đơn", invoice.getMaHD()))
+            .append(buildInfoRow("Khách hàng", invoice.getTenNguoiDung() != null ? invoice.getTenNguoiDung() : invoice.getTenKhachHang()))
+            .append(buildInfoRow("Email", invoice.getEmailNguoiDung() != null ? invoice.getEmailNguoiDung() : invoice.getEmailKhachHang()))
+            .append(buildInfoRow("Số điện thoại", invoice.getSoDienThoai() != null ? invoice.getSoDienThoai() : invoice.getSdtKhachHang()))
+            .append(buildInfoRow("Ngày lập", invoice.getNgayLap()))
+            .append(buildInfoRow("Thanh toán", invoice.getPhuongThucThanhToan()))
+            .append("</table>");
+
+        // Total
+        System.out.println("  Total amount type: " + (invoice.getTongTien() != null ? invoice.getTongTien().getClass().getName() : "null"));
+        System.out.println("  Total amount value: " + invoice.getTongTien());
+        
+        String formattedTotal;
         try {
-            if (qrCodeUrl == null || qrCodeUrl.trim().isEmpty()) {
-                throw new IllegalArgumentException("QR Code URL is null or empty for ticket: " + maVe);
-            }
-
-            System.out.println("DEBUG - QR Code URL: " + qrCodeUrl);
-            System.out.println("DEBUG - Content ID: " + contentId);
-
-            String filePath = null;
-
-            if (qrCodeUrl.contains("/uploads/qr-codes/")) {
-                int startIndex = qrCodeUrl.indexOf("/uploads/qr-codes/");
-                filePath = qrCodeUrl.substring(startIndex + 1); // Bỏ dấu "/" đầu
-                System.out.println("DEBUG - Extracted file path: " + filePath);
-            } else if (qrCodeUrl.startsWith("http")) {
-                System.out.println("DEBUG - Downloading from URL...");
-                URL url = new URL(qrCodeUrl);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setConnectTimeout(15000); // Tăng timeout lên 15 giây
-                connection.setReadTimeout(15000);
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("User-Agent", "Mozilla/5.0");
-
-                int responseCode = connection.getResponseCode();
-                System.out.println("DEBUG - Response code: " + responseCode);
-
-                if (responseCode == 200) {
-                    InputStream inputStream = connection.getInputStream();
-                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                    byte[] buffer = new byte[4096];
-                    int bytesRead;
-                    while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
-                    }
-
-                    byte[] imageBytes = outputStream.toByteArray();
-                    System.out.println("DEBUG - Downloaded bytes: " + imageBytes.length);
-
-                    if (imageBytes.length > 0) {
-                        ByteArrayResource resource = new ByteArrayResource(imageBytes);
-                        helper.addInline(contentId, resource, "image/png");
-                        System.out.println("SUCCESS - Attached from URL for ticket: " + maVe);
-                        inputStream.close();
-                        return;
-                    }
-                    inputStream.close();
-                    throw new IOException("Downloaded image is empty for ticket: " + maVe);
-                } else {
-                    throw new IOException("Failed to download QR code from URL, response code: " + responseCode);
-                }
-            } else if (qrCodeUrl.startsWith("data:image")) {
-                System.out.println("DEBUG - Processing Base64...");
-                String base64Data = qrCodeUrl.substring(qrCodeUrl.indexOf(",") + 1);
-                byte[] imageBytes;
-                try {
-                    imageBytes = Base64.getDecoder().decode(base64Data);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException("Invalid Base64 data for ticket: " + maVe, e);
-                }
-                System.out.println("DEBUG - Decoded bytes: " + imageBytes.length);
-
-                if (imageBytes.length > 0) {
-                    ByteArrayResource resource = new ByteArrayResource(imageBytes);
-                    helper.addInline(contentId, resource, "image/png");
-                    System.out.println("SUCCESS - Attached Base64 for ticket: " + maVe);
-                    return;
-                }
-                throw new IOException("Base64 image is empty for ticket: " + maVe);
+            Object tongTien = invoice.getTongTien();
+            if (tongTien instanceof Double || tongTien instanceof Float) {
+                formattedTotal = String.format("%,.0f", ((Number) tongTien).doubleValue());
+            } else if (tongTien instanceof Number) {
+                formattedTotal = String.format("%,d", ((Number) tongTien).longValue());
+            } else if (tongTien != null) {
+                // If it's String or BigDecimal, parse it
+                formattedTotal = String.format("%,.0f", Double.parseDouble(tongTien.toString()));
             } else {
-                filePath = qrCodeUrl;
-            }
-
-            if (filePath != null) {
-                File qrFile = new File(filePath);
-                System.out.println("DEBUG - Trying file path: " + qrFile.getAbsolutePath());
-                System.out.println("DEBUG - File exists: " + qrFile.exists());
-                System.out.println("DEBUG - File readable: " + qrFile.canRead());
-                System.out.println("DEBUG - File size: " + (qrFile.exists() ? qrFile.length() : "N/A"));
-
-                if (qrFile.exists() && qrFile.canRead() && qrFile.length() > 0) {
-                    helper.addInline(contentId, qrFile);
-                    System.out.println("SUCCESS - Attached local file: " + qrFile.getAbsolutePath() + " for ticket: " + maVe);
-                } else {
-                    throw new IOException("File not found, not readable, or empty: " + qrFile.getAbsolutePath());
-                }
+                formattedTotal = "0";
             }
         } catch (Exception e) {
-            System.err.println("ERROR - Lỗi đính kèm QR code cho vé: " + maVe + " - " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Không thể đính kèm mã QR cho vé: " + maVe, e);
+            System.err.println("  ✗ Error formatting total: " + e.getMessage());
+            formattedTotal = invoice.getTongTien() != null ? invoice.getTongTien().toString() : "0";
         }
+        
+        html.append("<div style='margin:20px 0;padding:15px;background:#f8f9fa;border-radius:8px;text-align:right'>")
+            .append("<span style='font-size:16px;color:#666'>Tổng tiền:</span> ")
+            .append("<span style='font-size:24px;color:#667eea;font-weight:bold'>")
+            .append(formattedTotal)
+            .append(" VNĐ</span></div>");
+
+        // Tickets
+        if (invoice.getDanhSachVe() != null && !invoice.getDanhSachVe().isEmpty()) {
+            html.append("<h2 style='color:#333;margin:30px 0 20px;font-size:20px'>Thông tin vé</h2>");
+            
+            int qrIndex = 0;
+            for (VeResponse ve : invoice.getDanhSachVe()) {
+                html.append(buildTicketCard(ve, qrIndex++));
+            }
+            System.out.println("  Added " + invoice.getDanhSachVe().size() + " ticket cards to HTML");
+        }
+
+        // Footer
+        html.append("<div style='margin-top:30px;padding-top:20px;border-top:1px solid #eee'>")
+            .append("<p style='color:#666;font-size:14px;line-height:1.6;margin:0'>")
+            .append("Vui lòng mang QR code này đến quầy để đổi vé.<br>")
+            .append("Đến trước giờ chiếu 15 phút để có chỗ ngồi tốt nhất.</p>")
+            .append("</div>");
+
+        html.append("</div>") // End padding
+            .append("<div style='text-align:center;padding:20px;color:#999;font-size:12px'>")
+            .append("© 2024 Cinema. All rights reserved.")
+            .append("</div>");
+
+        html.append("</div></body></html>");
+        
+        System.out.println("  HTML built, length: " + html.length() + " characters");
+        return html.toString();
+    }
+
+    // ============= BUILD TICKET CARD =============
+    private String buildTicketCard(VeResponse ve, int qrIndex) {
+        StringBuilder card = new StringBuilder();
+        LocalDateTime thoiGianChieu = ve.getThoiGianChieu();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        String formattedTime = thoiGianChieu.format(formatter);
+
+        card.append("<div style='border:2px dashed #667eea;border-radius:10px;padding:20px;margin:15px 0;background:#fafbff'>")
+            // Sử dụng flexbox: căn đều 2 bên, canh giữa theo trục dọc
+            .append("<div style='display:flex;justify-content:space-between;align-items:center;'>")
+            
+            // Bên trái: thông tin vé
+            .append("<div style='flex:1; padding-right:20px;'>")
+            .append("<h3 style='color:#667eea;margin:0 0 15px;font-size:18px'>").append(escapeHtml(ve.getTenPhim())).append("</h3>")
+            .append("<p style='margin:5px 0;color:#666'><b>Mã vé:</b> ").append(escapeHtml(ve.getMaVe())).append("</p>")
+            .append("<p style='margin:5px 0;color:#666'><b>Ghế:</b> <span style='display:inline-block;padding:4px 12px;background:#667eea;color:#fff;border-radius:4px;font-weight:bold'>")
+            .append(escapeHtml(ve.getTenGhe())).append("</span></p>")
+            .append("<p style='margin:5px 0;color:#666'><b>Suất chiếu:</b> ").append(escapeHtml(formattedTime)).append("</p>")
+            .append("</div>");
+
+        // Bên phải: QR Code
+        if (ve.getQrCodeUrl() != null && !ve.getQrCodeUrl().isEmpty()) {
+            card.append("<div style='flex-shrink:0; text-align:center;'>")
+                .append("<img src='cid:qr").append(qrIndex).append("' ")
+                .append("alt='QR Code' style='width:120px;height:120px;border:3px solid #667eea;border-radius:8px;background:#fff;padding:8px;display:block;margin:auto;'/>")
+                .append("</div>");
+        }
+
+        card.append("</div></div>");
+
+        return card.toString();
+    }
+    // ============= ESCAPE HTML =============
+    private String escapeHtml(Object value) {
+        if (value == null) return "";
+        return value.toString()
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#x27;");
+    }
+
+    // ============= BUILD INFO ROW =============
+    private String buildInfoRow(String label, Object value) {
+        String displayValue = (value != null) ? escapeHtml(value) : "";
+        return "<tr><td style='padding:8px 0;color:#666;width:40%'>" + escapeHtml(label) + ":</td>" +
+            "<td style='padding:8px 0;color:#333;font-weight:500'>" + displayValue + "</td></tr>";
+    }
+
+    // ============= ATTACH QR CODE =============
+    private void attachQRCode(MimeMessageHelper helper, String qrCodeUrl, String contentId) {
+        System.out.println("    Attaching QR [" + contentId + "]...");
+        System.out.println("    URL type: " + getUrlType(qrCodeUrl));
+        
+        try {
+            // Base64 Data URI
+            if (qrCodeUrl.startsWith("data:image")) {
+                System.out.println("    Processing as Base64 data URI");
+                int commaIndex = qrCodeUrl.indexOf(",");
+                if (commaIndex == -1) {
+                    System.err.println("    ✗ Invalid data URI format (no comma found)");
+                    return;
+                }
+                
+                String base64 = qrCodeUrl.substring(commaIndex + 1);
+                System.out.println("    Base64 length: " + base64.length());
+                
+                byte[] bytes = Base64.getDecoder().decode(base64);
+                System.out.println("    Decoded bytes: " + bytes.length);
+                
+                helper.addInline(contentId, new ByteArrayResource(bytes), "image/png");
+                System.out.println("    ✓ QR attached as inline resource (Base64)");
+                return;
+            }
+            
+            // HTTP/HTTPS URL
+            if (qrCodeUrl.startsWith("http://") || qrCodeUrl.startsWith("https://")) {
+                System.out.println("    Processing as HTTP URL");
+                URI uri = new URI(qrCodeUrl);
+                HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                conn.setRequestMethod("GET");
+                
+                System.out.println("    Connecting to: " + uri);
+                int responseCode = conn.getResponseCode();
+                System.out.println("    Response code: " + responseCode);
+                
+                if (responseCode == 200) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    InputStream in = conn.getInputStream();
+                    byte[] buffer = new byte[4096];
+                    int n;
+                    int totalBytes = 0;
+                    while ((n = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, n);
+                        totalBytes += n;
+                    }
+                    in.close();
+                    System.out.println("    Downloaded: " + totalBytes + " bytes");
+                    
+                    helper.addInline(contentId, new ByteArrayResource(out.toByteArray()), "image/png");
+                    System.out.println("    ✓ QR attached as inline resource (HTTP)");
+                    return;
+                } else {
+                    System.err.println("    ✗ HTTP request failed with code: " + responseCode);
+                    return;
+                }
+            }
+            
+            // Local File Path
+            System.out.println("    Processing as local file path");
+            File file = new File(qrCodeUrl);
+            System.out.println("    Trying path: " + file.getAbsolutePath());
+            
+            if (!file.exists()) {
+                System.out.println("    File not found, trying with user.dir");
+                file = new File(System.getProperty("user.dir"), qrCodeUrl);
+                System.out.println("    Trying path: " + file.getAbsolutePath());
+            }
+            
+            if (file.exists()) {
+                if (file.canRead()) {
+                    System.out.println("    File found and readable, size: " + file.length() + " bytes");
+                    helper.addInline(contentId, file);
+                    System.out.println("    ✓ QR attached as file resource");
+                } else {
+                    System.err.println("    ✗ File exists but cannot be read: " + file.getAbsolutePath());
+                }
+            } else {
+                System.err.println("    ✗ QR file not found: " + file.getAbsolutePath());
+            }
+            
+        } catch (URISyntaxException e) {
+            System.err.println("    ✗ Invalid URI: " + e.getMessage());
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("    ✗ IO Error: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("    ✗ Failed to attach QR: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    // ============= GET URL TYPE =============
+    private String getUrlType(String url) {
+        if (url == null) return "null";
+        if (url.startsWith("data:image")) return "Base64 Data URI";
+        if (url.startsWith("http://") || url.startsWith("https://")) return "HTTP URL";
+        return "Local File Path";
     }
 }
