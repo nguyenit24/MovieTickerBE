@@ -46,10 +46,10 @@ public class GheService {
             for (int j = 1; j <= soCot; j++) {
                 String tenGhe = String.format("%c%02d", hang, j);
                 LoaiGhe loaiGhe;
-                Optional<PhongChieu> phongChieu = phongChieuRepository.findById("P2");
-                if (phongChieu.isEmpty()) {
-                    throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
-                }
+                // Optional<PhongChieu> phongChieu = phongChieuRepository.findById("P2");
+                // if (phongChieu.isEmpty()) {
+                //     throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
+                // }
                 if (i < 4) {
                     loaiGhe = loaiGheRepository.findByTenLoaiGhe("Thường");
                 } else if (i < 8) {
@@ -60,11 +60,19 @@ public class GheService {
                 if (loaiGhe == null) {
                     throw new RuntimeException("Loại ghế không tồn tại");
                 }
-                if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu.get())) {
+                // if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu.get())) {
+                //     Ghe ghe = Ghe.builder()
+                //             .tenGhe(tenGhe)
+                //             .loaiGhe(loaiGhe)
+                //             // .phongChieu(phongChieu.get())
+                //             .build();
+                //     gheRepository.save(ghe);
+                // }
+                if (!gheRepository.existsByTenGhe(tenGhe)) {
                     Ghe ghe = Ghe.builder()
                             .tenGhe(tenGhe)
                             .loaiGhe(loaiGhe)
-                            .phongChieu(phongChieu.get())
+                            // .phongChieu(phongChieu.get())
                             .build();
                     gheRepository.save(ghe);
                 }
@@ -72,56 +80,56 @@ public class GheService {
         }
     }
 
-    @PostConstruct
-    public void seedGhePhongVip() {
-        Optional<PhongChieu> phongChieuOpt = phongChieuRepository.findById("P3");
-        if (phongChieuOpt.isEmpty()) {
-            throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
-        }
+    // @PostConstruct
+    // public void seedGhePhongVip() {
+    //     Optional<PhongChieu> phongChieuOpt = phongChieuRepository.findById("P3");
+    //     if (phongChieuOpt.isEmpty()) {
+    //         throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
+    //     }
 
-        PhongChieu phongChieu = phongChieuOpt.get();
+    //     PhongChieu phongChieu = phongChieuOpt.get();
 
-        LoaiGhe loaiVip = loaiGheRepository.findByTenLoaiGhe("VIP");
-        LoaiGhe loaiCouple = loaiGheRepository.findByTenLoaiGhe("Couple");
+    //     LoaiGhe loaiVip = loaiGheRepository.findByTenLoaiGhe("VIP");
+    //     LoaiGhe loaiCouple = loaiGheRepository.findByTenLoaiGhe("Couple");
 
-        if (loaiVip == null || loaiCouple == null) {
-            throw new RuntimeException("Chưa có loại ghế VIP hoặc Couple trong DB!");
-        }
+    //     if (loaiVip == null || loaiCouple == null) {
+    //         throw new RuntimeException("Chưa có loại ghế VIP hoặc Couple trong DB!");
+    //     }
 
-        // 🪑 Hàng A–C: ghế VIP, 8 cột mỗi hàng
-        for (int i = 0; i < 3; i++) {
-            char hang = (char) ('A' + i);
-            for (int j = 1; j <= 8; j++) {
-                String tenGhe = String.format("%c%02d", hang, j);
-                if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu)) {
-                    Ghe ghe = Ghe.builder()
-                            .tenGhe(tenGhe)
-                            .loaiGhe(loaiVip)
-                            .phongChieu(phongChieu)
-                            .build();
-                    gheRepository.save(ghe);
-                }
-            }
-        }
+    //     // 🪑 Hàng A–C: ghế VIP, 8 cột mỗi hàng
+    //     for (int i = 0; i < 3; i++) {
+    //         char hang = (char) ('A' + i);
+    //         for (int j = 1; j <= 8; j++) {
+    //             String tenGhe = String.format("%c%02d", hang, j);
+    //             if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu)) {
+    //                 Ghe ghe = Ghe.builder()
+    //                         .tenGhe(tenGhe)
+    //                         .loaiGhe(loaiVip)
+    //                         .phongChieu(phongChieu)
+    //                         .build();
+    //                 gheRepository.save(ghe);
+    //             }
+    //         }
+    //     }
 
-        // 💑 Hàng D–E: ghế Couple, 4 cột mỗi hàng
-        for (int i = 3; i < 5; i++) {
-            char hang = (char) ('A' + i);
-            for (int j = 1; j <= 4; j++) {
-                String tenGhe = String.format("%c%02d", hang, j);
-                if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu)) {
-                    Ghe ghe = Ghe.builder()
-                            .tenGhe(tenGhe)
-                            .loaiGhe(loaiCouple)
-                            .phongChieu(phongChieu)
-                            .build();
-                    gheRepository.save(ghe);
-                }
-            }
-        }
+    //     // 💑 Hàng D–E: ghế Couple, 4 cột mỗi hàng
+    //     for (int i = 3; i < 5; i++) {
+    //         char hang = (char) ('A' + i);
+    //         for (int j = 1; j <= 4; j++) {
+    //             String tenGhe = String.format("%c%02d", hang, j);
+    //             if (!gheRepository.existsByTenGheAndPhongChieu(tenGhe, phongChieu)) {
+    //                 Ghe ghe = Ghe.builder()
+    //                         .tenGhe(tenGhe)
+    //                         .loaiGhe(loaiCouple)
+    //                         .phongChieu(phongChieu)
+    //                         .build();
+    //                 gheRepository.save(ghe);
+    //             }
+    //         }
+    //     }
 
-        System.out.println("✅ Đã seed ghế cho phòng VIP " + phongChieu.getTenPhong());
-    }
+    //     System.out.println("✅ Đã seed ghế cho phòng VIP " + phongChieu.getTenPhong());
+    // }
 
     public Ghe updateGhe(String id, GheRequest request) {
         Optional<Ghe> gheOptional = gheRepository.findById(id);

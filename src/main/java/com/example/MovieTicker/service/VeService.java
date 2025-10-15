@@ -239,26 +239,26 @@ public class VeService {
         // Lưu vé trước để có mã vé
         ve = veRepository.save(ve);
         
-        // Tạo QR code cho vé
-        try {
-            String qrContent = qrCodeService.createTicketQRContent(
-                ve.getMaVe(),
-                suatChieu.getPhim().getTenPhim(),
-                suatChieu.getPhongChieu().getTenPhong(),
-                ghe.getTenGhe(),
-                suatChieu.getThoiGianBatDau().toString()
-            );
+        // // Tạo QR code cho vé
+        // try {
+        //     String qrContent = qrCodeService.createTicketQRContent(
+        //         ve.getMaVe(),
+        //         suatChieu.getPhim().getTenPhim(),
+        //         suatChieu.getPhongChieu().getTenPhong(),
+        //         ghe.getTenGhe(),
+        //         suatChieu.getThoiGianBatDau().toString()
+        //     );
             
-            String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
-            ve.setQrCodeUrl(qrCodeUrl);
+        //     String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
+        //     ve.setQrCodeUrl(qrCodeUrl);
             
-            // Cập nhật lại vé với QR code URL
-            ve = veRepository.save(ve);
+        //     // Cập nhật lại vé với QR code URL
+        //     ve = veRepository.save(ve);
             
-        } catch (Exception e) {
-            // Log lỗi nhưng không dừng việc tạo vé
-            System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
-        }
+        // } catch (Exception e) {
+        //     // Log lỗi nhưng không dừng việc tạo vé
+        //     System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
+        // }
 
         return ve;
     }

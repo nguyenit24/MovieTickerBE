@@ -1,10 +1,6 @@
 package com.example.MovieTicker.request;
 
-import com.example.MovieTicker.entity.User;
 import com.example.MovieTicker.entity.VaiTro;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

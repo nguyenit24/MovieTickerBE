@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 @RestController
@@ -120,5 +123,26 @@ public class DichVuDiKemController {
                 .data(response)
                 .build();
     }
+
+    @GetMapping("/categories")
+    public ApiResponse<?> getCategoryDichVu() {
+        List<String> categories = service.getAllCategories();
+        return ApiResponse.<List<String>>builder()
+                .code(200)
+                .message("Lấy danh sách danh mục dịch vụ đi kèm thành công")
+                .data(categories)
+                .build();
+    }
+
+    @GetMapping("/category/{tendanhmuc}")
+    public ApiResponse<?> getDichVuByCategory(@PathVariable String tendanhmuc) {
+        List<DichVuDiKem> list = service.getDichVuByCategory(tendanhmuc);
+        return ApiResponse.<List<DichVuDiKem>>builder()
+                .code(200)
+                .message("Lấy danh sách dịch vụ đi kèm theo danh mục thành công")
+                .data(list)
+                .build();
+    }
+    
 
 }

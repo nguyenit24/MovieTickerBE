@@ -14,6 +14,7 @@ import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,9 @@ import java.util.*;
 public class HoaDonController {
     @Autowired
     private HoaDonService invoiceService;
+
+    @Value("${frontend.base-url}")
+    private String frontendBaseUrl;
 
     @PostMapping("/vn_pay/create")
     public ApiResponse<?> createPaymentVnPay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -49,38 +53,31 @@ public class HoaDonController {
     }
 
     @GetMapping("/vn_pay/payment_info")
-    public ApiResponse<?> getPaymentInfoVnPay(
+    public void getPaymentInfoVnPay(
             @RequestParam("vnp_TransactionNo") String transNo,
             @RequestParam("vnp_PayDate") String transDate,
             @RequestParam("vnp_ResponseCode") String responseCode,
-            @RequestParam("vnp_TxnRef") String orderId
-    ) {
+            @RequestParam("vnp_TxnRef") String orderId,
+            HttpServletResponse response
+    ) throws IOException {
         // Cập nhật trạng thái hóa đơn và vé
         invoiceService.updatePaymentStatus(orderId, transNo, transDate, responseCode);
         
         if (responseCode.equals("00")) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("transactionNo", transNo);
-            data.put("transactionDate", transDate);
-            data.put("responseCode", responseCode);
-            data.put("orderId", orderId);
-            data.put("status", "SUCCESS");
-            return new ApiResponse<>(
-                    HttpStatus.OK.value(),
-                    "Thanh toán thành công",
-                    data
+            // Redirect về frontend với trạng thái thành công
+            String redirectUrl = String.format(
+                "%s/payment/result?orderId=%s&status=SUCCESS&transactionNo=%s&transactionDate=%s",
+                frontendBaseUrl, orderId, transNo, transDate
             );
+            response.sendRedirect(redirectUrl);
+        } else {
+            // Redirect về frontend với trạng thái thất bại
+            String redirectUrl = String.format(
+                "%s/payment/result?orderId=%s&status=FAILED&responseCode=%s",
+                frontendBaseUrl, orderId, responseCode
+            );
+            response.sendRedirect(redirectUrl);
         }
-        
-        Map<String, Object> errorData = new HashMap<>();
-        errorData.put("responseCode", responseCode);
-        errorData.put("orderId", orderId);
-        errorData.put("status", "FAILED");
-        return new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                "Thanh toán thất bại",
-                errorData
-        );
     }
 
         /*

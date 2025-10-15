@@ -48,4 +48,21 @@ public class DichVuDiKemService {
     public Page<DichVuDiKem> findDichVuDiKemByTenDvContainingIgnoreCase(String tenDv, Pageable pageable) {
         return repository.findDichVuDiKemByTenDvContainingIgnoreCase(tenDv, pageable);
     }
+
+    public List<String> getAllCategories() {
+         List<DichVuDiKem> allDichVuDiKem = repository.findAll();
+         return allDichVuDiKem.stream()
+                 .map(
+                        dvdk -> dvdk.getDanhMuc() != null && !dvdk.getDanhMuc().trim().isEmpty() ? dvdk.getDanhMuc().trim() : "other"
+                 )
+                 .distinct()
+                 .toList();
+    }
+
+    public List<DichVuDiKem> getDichVuByCategory(String tendanhmuc) {
+        if(tendanhmuc == null || tendanhmuc.trim().isEmpty() || tendanhmuc.equalsIgnoreCase("all")) {
+            return repository.findAll();
+        }
+        return repository.findByDanhMuc(tendanhmuc);
+    }
 }
