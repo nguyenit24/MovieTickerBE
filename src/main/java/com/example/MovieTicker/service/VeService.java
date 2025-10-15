@@ -4,11 +4,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -133,11 +132,32 @@ public class VeService {
         hoaDon.setPhuongThucThanhToan(request.getPhuongThucThanhToan());
         hoaDon.setNgayLap(LocalDateTime.now());
         hoaDon.setTrangThai(InvoiceStatus.PROCESSING.getCode());
-        hoaDon.setMaGiaoDich("GD" + System.currentTimeMillis()); // Mã giao dịch tạm thời
+        hoaDon.setMaGiaoDich("GD" + System.currentTimeMillis()); 
         
-        // Lấy user từ token hiện tại và set vào hóa đơn
         User currentUser = getCurrentUser();
         hoaDon.setUser(currentUser);
+        
+        if (currentUser == null) {
+            // Validate thông tin khách vãng lai
+            if (request.getTenKhachHang() == null || request.getTenKhachHang().trim().isEmpty()) {
+                throw new RuntimeException("Vui lòng nhập tên khách hàng");
+            }
+            if (request.getSdtKhachHang() == null || request.getSdtKhachHang().trim().isEmpty()) {
+                throw new RuntimeException("Vui lòng nhập số điện thoại");
+            }
+            if (request.getEmailKhachHang() == null || request.getEmailKhachHang().trim().isEmpty()) {
+                throw new RuntimeException("Vui lòng nhập email");
+            }
+            
+            hoaDon.setTenKhachHang(request.getTenKhachHang());
+            hoaDon.setSdtKhachHang(request.getSdtKhachHang());
+            hoaDon.setEmailKhachHang(request.getEmailKhachHang());
+        } else {
+            // Nếu có user, set các trường khách vãng lai về null
+            hoaDon.setTenKhachHang(null);
+            hoaDon.setSdtKhachHang(null);
+            hoaDon.setEmailKhachHang(null);
+        }
         
         hoaDon = hoaDonRepository.save(hoaDon);
         
@@ -319,39 +339,156 @@ public class VeService {
             .ghiChu(hoaDon.getGhiChu())
             .danhSachVe(danhSachVeResponse)
             .tenNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : null)
+            .emailNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getEmail() : null)
+            .soDienThoai(hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : null)
+            .tenKhachHang(hoaDon.getTenKhachHang())
+            .sdtKhachHang(hoaDon.getSdtKhachHang())
+            .emailKhachHang(hoaDon.getEmailKhachHang())
+            .soLuongVe(danhSachVeResponse.size())
             .build();
     }
     
     private VeResponse convertToVeResponse(Ve ve) {
+        String tenGhe = ve.getGhe().getTenGhe();
+        String hangGhe = tenGhe.substring(0, 1);
+        String soGheStr = tenGhe.substring(1); 
+        Integer soGhe = Integer.parseInt(soGheStr);
+        
         return VeResponse.builder()
             .maVe(ve.getMaVe())
             .tenPhim(ve.getSuatChieu().getPhim().getTenPhim())
             .tenPhongChieu(ve.getSuatChieu().getPhongChieu().getTenPhong())
-            .tenGhe(ve.getGhe().getTenGhe())
+            .tenGhe(tenGhe)
+            .hangGhe(hangGhe)
+            .soGhe(soGhe)
+            .loaiGhe(ve.getGhe().getLoaiGhe().getTenLoaiGhe())
+            .giaGhe((double) ve.getGhe().getLoaiGhe().getPhuThu())
+            .ngayChieu(ve.getSuatChieu().getThoiGianBatDau())
             .thoiGianChieu(ve.getSuatChieu().getThoiGianBatDau())
             .ngayDat(ve.getNgayDat())
             .thanhTien(ve.getThanhTien())
             .trangThai(ve.getTrangThai())
             .maHoaDon(ve.getHoaDon().getMaHD())
-            .qrCodeUrl(ve.getQrCodeUrl()) // Thêm QR code URL vào response
+            .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
+            .qrCodeUrl(ve.getQrCodeUrl())
             .build();
     }
 
-    /**
-     * Lấy user hiện tại từ Security Context (JWT token)
-     * @return User hiện tại hoặc null nếu không có authentication
-     */
+
     private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
-            String username = authentication.getName(); // Đây là tenDangNhap từ JWT
-            
-            // Tìm TaiKhoan theo tenDangNhap
+        String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
+        if (username != null && !"anonymousUser".equals(username)) {
             TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
             if (taiKhoan != null) {
                 return taiKhoan.getUser();
             }
         }
         return null;
+    }
+
+
+    public Map<String, Object> searchVe(String tenKhachHang, String tenPhim, Integer nam, 
+                                                   Integer thang, String trangThai, String maHoaDon,
+                                                   int page, int size) {
+      
+        List<Ve> allVe = veRepository.findAll();
+   
+        List<Ve> filteredVe = allVe.stream()
+            .filter(ve -> {
+                // Filter theo tên khách hàng (tìm trong cả user và khách vãng lai của hóa đơn)
+                if (tenKhachHang != null && !tenKhachHang.trim().isEmpty()) {
+                    String searchTerm = tenKhachHang.toLowerCase();
+                    HoaDon hoaDon = ve.getHoaDon();
+                    if (hoaDon != null) {
+                        boolean matchUser = hoaDon.getUser() != null && 
+                                           hoaDon.getUser().getHoTen() != null && 
+                                           hoaDon.getUser().getHoTen().toLowerCase().contains(searchTerm);
+                        boolean matchGuest = hoaDon.getTenKhachHang() != null && 
+                                            hoaDon.getTenKhachHang().toLowerCase().contains(searchTerm);
+                        if (!matchUser && !matchGuest) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+                
+                // Filter theo tên phim
+                if (tenPhim != null && !tenPhim.trim().isEmpty()) {
+                    String searchTerm = tenPhim.toLowerCase();
+                    if (ve.getSuatChieu() == null || 
+                        ve.getSuatChieu().getPhim() == null ||
+                        ve.getSuatChieu().getPhim().getTenPhim() == null ||
+                        !ve.getSuatChieu().getPhim().getTenPhim().toLowerCase().contains(searchTerm)) {
+                        return false;
+                    }
+                }
+                
+                // Filter theo năm
+                if (nam != null && ve.getNgayDat() != null) {
+                    if (ve.getNgayDat().getYear() != nam) {
+                        return false;
+                    }
+                }
+                
+                // Filter theo tháng
+                if (thang != null && ve.getNgayDat() != null) {
+                    if (ve.getNgayDat().getMonthValue() != thang) {
+                        return false;
+                    }
+                }
+                
+                // Filter theo trạng thái
+                if (trangThai != null && !trangThai.trim().isEmpty()) {
+                    if (!trangThai.equals(ve.getTrangThai())) {
+                        return false;
+                    }
+                }
+                
+                // Filter theo mã hóa đơn
+                if (maHoaDon != null && !maHoaDon.trim().isEmpty()) {
+                    if (ve.getHoaDon() == null || !maHoaDon.equals(ve.getHoaDon().getMaHD())) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            })
+            .sorted((ve1, ve2) -> ve2.getNgayDat().compareTo(ve1.getNgayDat())) // Sort by date DESC
+            .collect(Collectors.toList());
+        
+        // Tính tổng doanh thu từ các vé đã filter
+        double tongDoanhThu = filteredVe.stream()
+            .filter(ve -> "PAID".equals(ve.getTrangThai())) // Chỉ tính vé đã thanh toán
+            .mapToDouble(Ve::getThanhTien)
+            .sum();
+        
+        // Pagination
+        int totalItems = filteredVe.size();
+        int totalPages = (int) Math.ceil((double) totalItems / size);
+        int startIndex = (page - 1) * size;
+        int endIndex = Math.min(startIndex + size, totalItems);
+        
+        List<Ve> pagedVe = new ArrayList<>();
+        if (startIndex < totalItems) {
+            pagedVe = filteredVe.subList(startIndex, endIndex);
+        }
+        
+        // Convert to response
+        List<VeResponse> veResponseList = new ArrayList<>();
+        for (Ve ve : pagedVe) {
+            veResponseList.add(convertToVeResponse(ve));
+        }
+        
+        // Build response map
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("items", veResponseList);
+        response.put("currentPage", page);
+        response.put("totalPages", totalPages);
+        response.put("totalItems", (long) totalItems);
+        response.put("itemsPerPage", size);
+        response.put("tongDoanhThu", tongDoanhThu);
+        
+        return response;
     }
 }

@@ -56,6 +56,11 @@ public class HoaDon {
     private String transactionDate;
     private String responseCode;
 
+    // Thông tin khách vãng lai (khi user = null)
+    private String tenKhachHang;
+    private String sdtKhachHang;
+    private String emailKhachHang;
+
     @JsonIgnore
     @OneToMany(mappedBy = "hoaDon", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Ve> ves;

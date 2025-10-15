@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 import com.example.MovieTicker.entity.HoaDon;
+import com.example.MovieTicker.entity.Ve;
+import com.example.MovieTicker.enums.InvoiceStatus;
+import com.example.MovieTicker.enums.TicketStatus;
+import com.example.MovieTicker.repository.HoaDonRepository;
 import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.response.CreateMomoResponse;
@@ -20,6 +24,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @RestController
@@ -28,13 +34,16 @@ public class HoaDonController {
     @Autowired
     private HoaDonService invoiceService;
 
+    @Autowired
+    private HoaDonRepository hoaDonRepository;
+
     @Value("${frontend.base-url}")
     private String frontendBaseUrl;
 
     @PostMapping("/vn_pay/create")
     public ApiResponse<?> createPaymentVnPay(@RequestBody PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
-            // Validate hóa đơntrước khi tạo payment
+            // Validate hóa đơn trước khi tạo payment
             invoiceService.validateInvoiceForPayment(paymentRequest.getOrderId());
             
             String paymentUrl = invoiceService.createVnPayRequest(paymentRequest, request, response);
@@ -61,23 +70,69 @@ public class HoaDonController {
             @RequestParam("vnp_TxnRef") String orderId,
             HttpServletResponse response
     ) throws IOException {
-        // Cập nhật trạng thái hóa đơn và vé
-        invoiceService.updatePaymentStatus(orderId, transNo, transDate, responseCode);
-        
-        if (responseCode.equals("00")) {
-            // Redirect về frontend với trạng thái thành công
-            String redirectUrl = String.format(
-                "%s/payment/result?orderId=%s&status=SUCCESS&transactionNo=%s&transactionDate=%s",
-                frontendBaseUrl, orderId, transNo, transDate
-            );
-            response.sendRedirect(redirectUrl);
-        } else {
-            // Redirect về frontend với trạng thái thất bại
-            String redirectUrl = String.format(
-                "%s/payment/result?orderId=%s&status=FAILED&responseCode=%s",
-                frontendBaseUrl, orderId, responseCode
-            );
-            response.sendRedirect(redirectUrl);
+        // Luôn cố gắng redirect về frontend, kể cả khi updatePaymentStatus gặp lỗi
+        String redirectUrl;
+        try {
+            // Cập nhật trạng thái hóa đơn và vé
+            invoiceService.updatePaymentStatus(orderId, transNo, transDate, responseCode);
+
+            if ("00".equals(responseCode)) {
+                // thành công
+                redirectUrl = String.format(
+                        "%s/payment/result?orderId=%s&status=SUCCESS&transactionNo=%s&transactionDate=%s",
+                        frontendBaseUrl, orderId, transNo, transDate
+                );
+            } else {
+                // thất bại
+                redirectUrl = String.format(
+                        "%s/payment/result?orderId=%s&status=FAILED&responseCode=%s",
+                        frontendBaseUrl, orderId, responseCode
+                );
+            }
+        } catch (Exception e) {
+            String msg = e.getMessage() == null ? "error" : e.getMessage();
+            String encoded = URLEncoder.encode(msg, StandardCharsets.UTF_8);
+            HoaDon hoaDon = invoiceService.getHoaDonByMaHD(orderId);
+            if (hoaDon != null && hoaDon.getResponseCode() != null && hoaDon.getResponseCode().equals("00")) {
+                redirectUrl = String.format(
+                        "%s/payment/result?orderId=%s&status=SUCCESS&transactionNo=%s&transactionDate=%s&message=%s",
+                        frontendBaseUrl, orderId, hoaDon.getTransactionNo(), hoaDon.getTransactionDate(), encoded
+                );
+            } else {
+                 hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
+                if (hoaDon.getVes() != null) {
+                    for (Ve ve : hoaDon.getVes()) {
+                        ve.setTrangThai(TicketStatus.CANCELLED.getCode());
+                    }
+                }
+                hoaDonRepository.save(hoaDon);
+                redirectUrl = String.format(
+                        "%s/payment/result?orderId=%s&status=FAILED&message=%s",
+                        frontendBaseUrl, orderId, encoded
+                );
+            }
+        }
+        try {
+            if (!response.isCommitted()) {
+                response.sendRedirect(redirectUrl);
+                return;
+            }
+        } catch (Exception ex) {
+            // nếu sendRedirect lỗi, sẽ gửi fallback HTML bên dưới
+            // log nếu cần
+
+            ex.printStackTrace();
+        }
+
+        // Fallback: nếu không thể redirect (response committed), ghi 1 trang HTML có meta refresh và link
+        try {
+            response.setContentType("text/html;charset=UTF-8");
+            String html = "<html><head><meta http-equiv=\"refresh\" content=\"0;url=" + redirectUrl + "\" /></head>"
+                    + "<body>Redirecting... If you are not redirected, <a href=\"" + redirectUrl + "\">click here</a>.</body></html>";
+            response.getWriter().write(html);
+            response.getWriter().flush();
+        } catch (IOException ignored) {
+            // nếu vẫn lỗi, không thể làm gì hơn
         }
     }
 
@@ -234,6 +289,10 @@ public class HoaDonController {
                     paymentStatus = "SUCCESS";
                 } else if (hoaDon.getResponseCode() != null && !"00".equals(hoaDon.getResponseCode())) {
                     paymentStatus = "FAILED";
+                } else if ("CANCELLED".equals(hoaDon.getTrangThai())) {
+                    paymentStatus = "CANCELLED";
+                } else if ("EXPIRED".equals(hoaDon.getTrangThai())) {
+                    paymentStatus = "EXPIRED";
                 }
                 data.put("paymentStatus", paymentStatus);
                 
@@ -278,23 +337,24 @@ public class HoaDonController {
             );
         }
     }
+    
+ 
 
     @GetMapping("/all")
     public ApiResponse<?> getAllInvoices() {
         try {
             List<HoaDon> invoices = invoiceService.getAllHoaDon();
-            System.out.println(invoices);
-            return ApiResponse.builder()
-                    .code(HttpStatus.OK.value())
-                    .message("Lấy hóa đơn thành công")
-                    .data(invoices)
-                    .build();
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy danh sách hóa đơn thành công",
+                    invoices
+            );
         } catch (Exception e) {
-            return ApiResponse.builder()
-                    .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("Lấy hóa đơn thất bại")
-                    .data("Không biết sao lỗi luôn :V")
-                    .build();
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
+                    null
+            );
         }
     }
 
@@ -352,6 +412,41 @@ public class HoaDonController {
                     .message("Đã có lỗi xảy ra")
                     .data(e.getMessage())
                     .build();
+        }
+    }
+
+    /**
+     * API tìm kiếm và lọc hóa đơn với phân trang
+     * GET /api/payment/search?tenKhachHang=Nguyen&nam=2025&thang=10&trangThai=PAID&page=1&size=10
+     */
+    @GetMapping("/search")
+    public ApiResponse<?> searchHoaDon(
+            @RequestParam(required = false) String tenKhachHang,
+            @RequestParam(required = false) Integer nam,
+            @RequestParam(required = false) Integer thang,
+            @RequestParam(required = false) String trangThai,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        try {
+            if (page < 1) page = 1;
+            if (size < 1) size = 10;
+
+            Map<String, Object> result = invoiceService.searchHoaDon(
+                tenKhachHang, nam, thang, trangThai, page, size
+            );
+
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Tìm kiếm hóa đơn thành công",
+                    result
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi tìm kiếm hóa đơn: " + e.getMessage(),
+                    null
+            );
         }
     }
 }
