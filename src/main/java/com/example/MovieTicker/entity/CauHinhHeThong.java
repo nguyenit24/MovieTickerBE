@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table
 public class CauHinhHeThong implements Serializable {
 
     @Id
