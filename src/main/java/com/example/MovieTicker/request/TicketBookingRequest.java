@@ -13,4 +13,9 @@ public class TicketBookingRequest {
     private String maKhuyenMai; 
     private List<DichVuRequest> dichVuList;
     private String phuongThucThanhToan;
+    
+    // Thông tin khách vãng lai (không bắt buộc, dành cho guest)
+    private String tenKhachHang;
+    private String sdtKhachHang;
+    private String emailKhachHang;
 }

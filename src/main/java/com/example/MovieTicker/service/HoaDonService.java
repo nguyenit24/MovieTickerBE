@@ -20,6 +20,8 @@ import com.example.MovieTicker.response.*;
 import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -38,6 +40,8 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Service
 public class HoaDonService {
@@ -294,20 +298,21 @@ public class HoaDonService {
         }
     }
 
+    @Transactional
     public void updatePaymentStatus(String orderId, String transactionNo, String transactionDate, String responseCode) {
         try {
             HoaDon hoaDon = getHoaDonByMaHD(orderId);
-            
+
             // Kiểm tra hóa đơn có hết hạn không (10 phút)
             if (isInvoiceExpired(hoaDon)) {
                 throw new RuntimeException("Hóa đơn đã hết hạn thanh toán (quá 10 phút). Vui lòng tạo đơn hàng mới.");
             }
-            
+
             // Cập nhật thông tin giao dịch
             hoaDon.setTransactionNo(transactionNo);
             hoaDon.setTransactionDate(transactionDate);
             hoaDon.setResponseCode(responseCode);
-            
+
             // Cập nhật trạng thái dựa trên response code
             if ("00".equals(responseCode) || "0".equals(responseCode)) {
                 hoaDon.setTrangThai(InvoiceStatus.PAID.getCode());
@@ -317,29 +322,41 @@ public class HoaDonService {
                         ve.setTrangThai(TicketStatus.PAID.getCode());
                         try {
                             String qrContent = qrCodeService.createTicketQRContent(
-                                ve.getMaVe(),
-                                ve.getSuatChieu().getPhim().getTenPhim(),
-                                ve.getSuatChieu().getPhongChieu().getTenPhong(),
-                                ve.getGhe().getTenGhe(),
-                                ve.getSuatChieu().getThoiGianBatDau().toString(),
-                                ve.getTrangThai()
+                                    ve.getMaVe(),
+                                    ve.getSuatChieu().getPhim().getTenPhim(),
+                                    ve.getSuatChieu().getPhongChieu().getTenPhong(),
+                                    ve.getGhe().getTenGhe(),
+                                    ve.getSuatChieu().getThoiGianBatDau().toString(),
+                                    ve.getTrangThai(),
+                                    hoaDon.getTenKhachHang() != null ? hoaDon.getTenKhachHang() : (hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : "Khach vang lai"),
+                                    hoaDon.getSdtKhachHang() != null ? hoaDon.getSdtKhachHang() : (hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : "Chua cap nhat")
                             );
-                            
+
                             String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
                             System.out.println("QR Code URL for ticket " + ve.getMaVe() + ": " + qrCodeUrl);
                             ve.setQrCodeUrl(qrCodeUrl);
                             veRepository.save(ve);
-                            
+
                         } catch (Exception e) {
                             System.err.println("Lỗi khi tạo QR code cho vé " + ve.getMaVe() + ": " + e.getMessage());
-                        }   
+                        }
 
                     }
                 }
                 HoaDon hoaDon1 = hoaDonRepository.save(hoaDon);
+
+                // Gửi email cho cả user đăng nhập và khách vãng lai
+                HoaDonResponse response = convertToHoaDonResponse(hoaDon1);
+                String emailTo = null;
+
                 if (hoaDon1.getUser() != null && hoaDon1.getUser().getEmail() != null) {
-                    HoaDonResponse response = convertToHoaDonResponse(hoaDon1); // Tạo response từ entity
-                    emailService.sendSuccessInvoiceEmail(hoaDon1.getUser().getEmail(), response);
+                    emailTo = hoaDon1.getUser().getEmail();
+                } else if (hoaDon1.getEmailKhachHang() != null && !hoaDon1.getEmailKhachHang().trim().isEmpty()) {
+                    emailTo = hoaDon1.getEmailKhachHang();
+                }
+
+                if (emailTo != null) {
+                    emailService.sendSuccessInvoiceEmail(emailTo, response);
                 }
             } else {
                 hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
@@ -350,13 +367,13 @@ public class HoaDonService {
                 }
                 hoaDonRepository.save(hoaDon);
             }
-            
-           
+
+
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi cập nhật trạng thái thanh toán: " + e.getMessage());
         }
     }
-    
+
     /**
      * Kiểm tra hóa đơn có hết hạn không (10 phút)
      */
@@ -364,22 +381,26 @@ public class HoaDonService {
         if (hoaDon == null || hoaDon.getNgayLap() == null) {
             return true;
         }
-        
+        // Nếu hóa đơn đã được thanh toán thì không coi là expired
+        if (InvoiceStatus.PAID.getCode().equals(hoaDon.getTrangThai())) {
+            return false;
+        }
+
         LocalDateTime expiredTime = LocalDateTime.now().minusMinutes(10);
         return hoaDon.getNgayLap().isBefore(expiredTime);
     }
-    
+
     /**
      * Kiểm tra hóa đơn có thể thanh toán không
      */
     public void validateInvoiceForPayment(String maHD) {
         HoaDon hoaDon = getHoaDonByMaHD(maHD);
-        
+
         // Kiểm tra trạng thái hiện tại
         if (!InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai())) {
             throw new RuntimeException("Hóa đơn không ở trạng thái chờ thanh toán");
         }
-        
+
         // Kiểm tra hết hạn
         if (isInvoiceExpired(hoaDon)) {
             // Tự động cập nhật trạng thái thành EXPIRED
@@ -390,46 +411,46 @@ public class HoaDonService {
                 }
             }
             hoaDonRepository.save(hoaDon);
-            
+
             throw new RuntimeException("Hóa đơn đã hết hạn thanh toán (quá 10 phút). Vui lòng tạo đơn hàng mới.");
         }
     }
-    
+
     /**
      * Hủy hóa đơn manual khi user out ra không thanh toán
      */
     public void cancelInvoiceManual(String maHD) {
         try {
             HoaDon hoaDon = getHoaDonByMaHD(maHD);
-            
+
             // Chỉ cho phép hủy hóa đơn đang PROCESSING
             if (!InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai())) {
                 throw new RuntimeException("Không thể hủy hóa đơn. Trạng thái hiện tại: " + hoaDon.getTrangThai());
             }
-            
+
             // Cập nhật trạng thái hóa đơn thành CANCELLED
             hoaDon.setTrangThai(InvoiceStatus.CANCELLED.getCode());
-            
+
             // Cập nhật trạng thái tất cả vé trong hóa đơn thành CANCELLED
             if (hoaDon.getVes() != null) {
                 for (Ve ve : hoaDon.getVes()) {
                     ve.setTrangThai(TicketStatus.CANCELLED.getCode());
                 }
             }
-            
+
             hoaDonRepository.save(hoaDon);
-            
+
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi hủy hóa đơn: " + e.getMessage());
         }
     }
-    
+
     /**
      * Kiểm tra trạng thái hóa đơn hiện tại
      */
     public String getInvoiceStatus(String maHD) {
         HoaDon hoaDon = getHoaDonByMaHD(maHD);
-        
+
         // Kiểm tra xem có hết hạn không
         if (InvoiceStatus.PROCESSING.getCode().equals(hoaDon.getTrangThai()) && isInvoiceExpired(hoaDon)) {
             // Tự động cập nhật trạng thái thành EXPIRED
@@ -442,7 +463,7 @@ public class HoaDonService {
             hoaDonRepository.save(hoaDon);
             return InvoiceStatus.EXPIRED.getCode();
         }
-        
+
         return hoaDon.getTrangThai();
     }
 
@@ -459,97 +480,96 @@ public class HoaDonService {
             throw new RuntimeException("Không tìm thấy hóa đơn với mã: " + maHD);
         }
     }
-    
-    /**
-     * Convert HoaDon entity sang HoaDonResponse với đầy đủ thông tin
-     */
+
+
     private HoaDonResponse convertToHoaDonResponse(HoaDon hoaDon) {
-        // Convert danh sách vé
         List<VeResponse> danhSachVeResponse = new ArrayList<>();
         if (hoaDon.getVes() != null) {
             for (Ve ve : hoaDon.getVes()) {
                 // Parse tenGhe để lấy hàng và số
                 String tenGhe = ve.getGhe().getTenGhe();
-                String hangGhe = tenGhe.substring(0, 1); // A, B, C...
-                String soGhe = tenGhe.substring(1); // 01, 02, 03...
-                
+                String hangGhe = tenGhe.substring(0, 1);
+                String soGhe = tenGhe.substring(1);
+
                 VeResponse veResponse = VeResponse.builder()
-                    .maVe(ve.getMaVe())
-                    .tenPhim(ve.getSuatChieu().getPhim().getTenPhim())
-                    .tenPhongChieu(ve.getSuatChieu().getPhongChieu().getTenPhong())
-                    .tenGhe(tenGhe)
-                    .hangGhe(hangGhe)
-                    .soGhe(Integer.parseInt(soGhe))
-                    .loaiGhe(ve.getGhe().getLoaiGhe().getTenLoaiGhe())
-                    .giaGhe((double) ve.getGhe().getLoaiGhe().getPhuThu())
-                    .ngayChieu(ve.getSuatChieu().getThoiGianBatDau())
-                    .thoiGianChieu(ve.getSuatChieu().getThoiGianBatDau())
-                    .ngayDat(ve.getNgayDat())
-                    .thanhTien(ve.getThanhTien())
-                    .trangThai(ve.getTrangThai())
-                    .maHoaDon(hoaDon.getMaHD())
-                    .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
-                    .qrCodeUrl(ve.getQrCodeUrl())
-                    .build();
+                        .maVe(ve.getMaVe())
+                        .tenPhim(ve.getSuatChieu().getPhim().getTenPhim())
+                        .tenPhongChieu(ve.getSuatChieu().getPhongChieu().getTenPhong())
+                        .tenGhe(tenGhe)
+                        .hangGhe(hangGhe)
+                        .soGhe(Integer.parseInt(soGhe))
+                        .loaiGhe(ve.getGhe().getLoaiGhe().getTenLoaiGhe())
+                        .giaGhe((double) ve.getGhe().getLoaiGhe().getPhuThu())
+                        .ngayChieu(ve.getSuatChieu().getThoiGianBatDau())
+                        .thoiGianChieu(ve.getSuatChieu().getThoiGianBatDau())
+                        .ngayDat(ve.getNgayDat())
+                        .thanhTien(ve.getThanhTien())
+                        .trangThai(ve.getTrangThai())
+                        .maHoaDon(hoaDon.getMaHD())
+                        .maSuatChieu(ve.getSuatChieu().getMaSuatChieu())
+                        .qrCodeUrl(ve.getQrCodeUrl())
+                        .build();
                 danhSachVeResponse.add(veResponse);
             }
         }
-        
-        // Convert danh sách dịch vụ đi kèm từ tất cả các vé
+
         List<DichVuResponse> danhSachDichVuResponse = new ArrayList<>();
         if (hoaDon.getVes() != null) {
             for (Ve ve : hoaDon.getVes()) {
                 if (ve.getChiTietDichVuVes() != null) {
                     for (ChiTietDichVuVe chiTiet : ve.getChiTietDichVuVes()) {
                         DichVuResponse dichVuResponse = DichVuResponse.builder()
-                            .maDichVu(chiTiet.getDichVuDiKem().getMaDv().toString())
-                            .tenDichVu(chiTiet.getDichVuDiKem().getTenDv())
-                            .giaDichVu(chiTiet.getDichVuDiKem().getDonGia())
-                            .soLuong(chiTiet.getSoLuong())
-                            .thanhTien(chiTiet.getDichVuDiKem().getDonGia() * chiTiet.getSoLuong())
-                            .moTa(chiTiet.getDichVuDiKem().getMoTa())
-                            .build();
+                                .maDichVu(chiTiet.getDichVuDiKem().getMaDv().toString())
+                                .tenDichVu(chiTiet.getDichVuDiKem().getTenDv())
+                                .giaDichVu(chiTiet.getDichVuDiKem().getDonGia())
+                                .soLuong(chiTiet.getSoLuong())
+                                .thanhTien(chiTiet.getDichVuDiKem().getDonGia() * chiTiet.getSoLuong())
+                                .moTa(chiTiet.getDichVuDiKem().getMoTa())
+                                .build();
                         danhSachDichVuResponse.add(dichVuResponse);
                     }
                 }
             }
         }
-        
+
         // Tính toán tổng tiền
         double tongTienVe = danhSachVeResponse.stream()
-            .mapToDouble(VeResponse::getThanhTien)
-            .sum();
+                .mapToDouble(VeResponse::getThanhTien)
+                .sum();
         double tongTienDichVu = danhSachDichVuResponse.stream()
-            .mapToDouble(DichVuResponse::getThanhTien)
-            .sum();
-        
+                .mapToDouble(DichVuResponse::getThanhTien)
+                .sum();
+
         // Kiểm tra hết hạn
         boolean isExpired = isInvoiceExpired(hoaDon);
         LocalDateTime expiredAt = hoaDon.getNgayLap().plusMinutes(10);
-        
+
         // Build response
         return HoaDonResponse.builder()
-            .maHD(hoaDon.getMaHD())
-            .ngayLap(hoaDon.getNgayLap())
-            .tongTien(hoaDon.getTongTien())
-            .tongTienVe(tongTienVe)
-            .tongTienDichVu(tongTienDichVu)
-            .phuongThucThanhToan(hoaDon.getPhuongThucThanhToan())
-            .trangThai(hoaDon.getTrangThai())
-            .maGiaoDich(hoaDon.getMaGiaoDich())
-            .transactionNo(hoaDon.getTransactionNo())
-            .transactionDate(hoaDon.getTransactionDate())
-            .responseCode(hoaDon.getResponseCode())
-            .ghiChu(hoaDon.getGhiChu())
-            .danhSachVe(danhSachVeResponse)
-            .danhSachDichVu(danhSachDichVuResponse)
-            .tenNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : null)
-            .emailNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getEmail() : null)
-            .soDienThoai(hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : null)
-            .soLuongVe(danhSachVeResponse.size())
-            .expiredAt(expiredAt)
-            .isExpired(isExpired)
-            .build();
+                .maHD(hoaDon.getMaHD())
+                .ngayLap(hoaDon.getNgayLap())
+                .tongTien(hoaDon.getTongTien())
+                .tongTienVe(tongTienVe)
+                .tongTienDichVu(tongTienDichVu)
+                .phuongThucThanhToan(hoaDon.getPhuongThucThanhToan())
+                .trangThai(hoaDon.getTrangThai())
+                .maGiaoDich(hoaDon.getMaGiaoDich())
+                .transactionNo(hoaDon.getTransactionNo())
+                .transactionDate(hoaDon.getTransactionDate())
+                .responseCode(hoaDon.getResponseCode())
+                .ghiChu(hoaDon.getGhiChu())
+                .danhSachVe(danhSachVeResponse)
+                .danhSachDichVu(danhSachDichVuResponse)
+                .tenNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : null)
+                .emailNguoiDung(hoaDon.getUser() != null ? hoaDon.getUser().getEmail() : null)
+                .soDienThoai(hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : null)
+                .soLuongVe(danhSachVeResponse.size())
+                .expiredAt(expiredAt)
+                .isExpired(isExpired)
+                .tenKhachHang(hoaDon.getTenKhachHang())
+                .sdtKhachHang(hoaDon.getSdtKhachHang())
+                .emailKhachHang(hoaDon.getEmailKhachHang())
+                .build();
     }
 
     /**
@@ -560,7 +580,7 @@ public class HoaDonService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
             String username = authentication.getName(); // Đây là tenDangNhap từ JWT
-            
+
             // Tìm TaiKhoan theo tenDangNhap
             TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
             if (taiKhoan != null) {
@@ -589,6 +609,78 @@ public class HoaDonService {
         }
 
         return responseList;
+    }
+
+
+    public Map<String, Object> searchHoaDon(String tenKhachHang, Integer nam, Integer thang,
+                                            String trangThai, int page, int size) {
+        Long totalUserNotLogin = 0L;
+        List<HoaDon> allHoaDon = hoaDonRepository.findAll();
+        List<HoaDon> filteredHoaDon = allHoaDon.stream()
+                .filter(hd -> {
+                    if (tenKhachHang != null && !tenKhachHang.trim().isEmpty()) {
+                        String searchTerm = tenKhachHang.toLowerCase();
+                        boolean matchUser = hd.getUser() != null &&
+                                hd.getUser().getHoTen() != null &&
+                                hd.getUser().getHoTen().toLowerCase().contains(searchTerm);
+                        boolean matchGuest = hd.getTenKhachHang() != null &&
+                                hd.getTenKhachHang().toLowerCase().contains(searchTerm);
+                        if (!matchUser && !matchGuest) {
+                            return false;
+                        }
+                    }
+                    if (nam != null && hd.getNgayLap() != null) {
+                        if (hd.getNgayLap().getYear() != nam) {
+                            return false;
+                        }
+                    }
+                    if (thang != null && hd.getNgayLap() != null) {
+                        if (hd.getNgayLap().getMonthValue() != thang) {
+                            return false;
+                        }
+                    }
+                    if (trangThai != null && !trangThai.trim().isEmpty()) {
+                        if (!trangThai.equals(hd.getTrangThai())) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                })
+                .sorted((hd1, hd2) -> hd2.getNgayLap().compareTo(hd1.getNgayLap()))
+                .collect(Collectors.toList());
+        double tongDoanhThu = filteredHoaDon.stream()
+                .filter(hd -> "PAID".equals(hd.getTrangThai()))
+                .mapToDouble(HoaDon::getTongTien)
+                .sum();
+
+        int totalItems = filteredHoaDon.size();
+        int totalPages = (int) Math.ceil((double) totalItems / size);
+        int startIndex = (page - 1) * size;
+        int endIndex = Math.min(startIndex + size, totalItems);
+
+        List<HoaDon> pagedHoaDon = new ArrayList<>();
+        if (startIndex < totalItems) {
+            pagedHoaDon = filteredHoaDon.subList(startIndex, endIndex);
+        }
+
+        List<HoaDonResponse> hoaDonResponseList = new ArrayList<>();
+        for (HoaDon hoaDon : pagedHoaDon) {
+            if (hoaDon.getUser() == null) {
+                totalUserNotLogin++;
+            }
+            hoaDonResponseList.add(convertToHoaDonResponse(hoaDon));
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("items", hoaDonResponseList);
+        response.put("currentPage", page);
+        response.put("totalPages", totalPages);
+        response.put("totalItems", (long) totalItems);
+        response.put("itemsPerPage", size);
+        response.put("tongDoanhThu", tongDoanhThu);
+        response.put("totalUserNotLogin", totalUserNotLogin);
+        return response;
     }
 
     public List<HoaDonSatisticResponse> getAllHoaDonResponse() {

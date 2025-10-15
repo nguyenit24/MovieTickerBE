@@ -3,6 +3,7 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.entity.KhuyenMai;
 import com.example.MovieTicker.repository.KhuyenMaiRepository;
 import com.example.MovieTicker.request.KhuyenMaiRequest;
+import com.example.MovieTicker.response.HoaDonSatisticResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -114,4 +115,6 @@ public class KhuyenMaiService {
         }
         return khuyenMai.orElse(null);
     }
+
+
 }
