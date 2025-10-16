@@ -38,6 +38,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collector;
@@ -683,8 +684,15 @@ public class HoaDonService {
         return response;
     }
 
-    public List<HoaDonSatisticResponse> getAllHoaDonResponse() {
-        List<HoaDonSatisticResponse> hoaDonList = hoaDonRepository.findAllHoaDonPaid();
-        return hoaDonList;
+    public List<HoaDonSatisticResponse> getAllHoaDonResponse(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {
+        System.out.println("NgayBatDau: " + NgayBatDau);
+        System.out.println("NgayKetThuc: " + NgayKetThuc);
+        return hoaDonRepository.findAllHoaDonPaid(NgayBatDau, NgayKetThuc);
+    }
+
+    public List<PhimStatisticResponse> getAllHoaDonByPhim(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {
+        System.out.println("NgayBatDau: " + NgayBatDau);
+        System.out.println("NgayKetThuc: " + NgayKetThuc);
+        return hoaDonRepository.findAllPhimStatistic(NgayBatDau, NgayKetThuc);
     }
 }

@@ -1,5 +1,6 @@
 package com.example.MovieTicker.controller;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -9,10 +10,7 @@ import com.example.MovieTicker.enums.InvoiceStatus;
 import com.example.MovieTicker.enums.TicketStatus;
 import com.example.MovieTicker.repository.HoaDonRepository;
 import com.example.MovieTicker.request.PaymentRequest;
-import com.example.MovieTicker.response.ApiResponse;
-import com.example.MovieTicker.response.CreateMomoResponse;
-import com.example.MovieTicker.response.HoaDonResponse;
-import com.example.MovieTicker.response.HoaDonSatisticResponse;
+import com.example.MovieTicker.response.*;
 import com.example.MovieTicker.service.HoaDonService;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -397,9 +395,11 @@ public class HoaDonController {
     }
 
     @GetMapping()
-    public ApiResponse<?> getAllHoaDon() {
+    public ApiResponse<?> getAllHoaDon(@RequestParam LocalDate NgayBD, @RequestParam LocalDate NgayKT) {
         try {
-            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonResponse();
+            LocalDateTime start = NgayBD.atStartOfDay(); // 00:00
+            LocalDateTime end = NgayKT.plusDays(1).atStartOfDay(); // sang ngày tiếp theo 00:00
+            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonResponse(start, end);
             return ApiResponse.<List<HoaDonSatisticResponse>>builder()
                     .code(HttpStatus.OK.value())
                     .message("Thành công")
@@ -415,10 +415,6 @@ public class HoaDonController {
         }
     }
 
-    /**
-     * API tìm kiếm và lọc hóa đơn với phân trang
-     * GET /api/payment/search?tenKhachHang=Nguyen&nam=2025&thang=10&trangThai=PAID&page=1&size=10
-     */
     @GetMapping("/search")
     public ApiResponse<?> searchHoaDon(
             @RequestParam(required = false) String tenKhachHang,
@@ -445,6 +441,26 @@ public class HoaDonController {
             return new ApiResponse<>(
                     HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     "Lỗi khi tìm kiếm hóa đơn: " + e.getMessage(),
+                    null
+            );
+        }
+    }
+
+    @GetMapping("/phim")
+    public ApiResponse<?> getAllMovieInvoices(@RequestParam LocalDate NgayBD, @RequestParam LocalDate NgayKT) {
+        try {
+            LocalDateTime start = NgayBD.atStartOfDay(); // 00:00
+            LocalDateTime end = NgayKT.plusDays(1).atStartOfDay(); // sang ngày tiếp theo 00:00
+            List<PhimStatisticResponse> invoices = invoiceService.getAllHoaDonByPhim(start, end);
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Lấy danh sách hóa đơn thành công",
+                    invoices
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi lấy danh sách hóa đơn: " + e.getMessage(),
                     null
             );
         }

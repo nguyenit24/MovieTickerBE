@@ -12,6 +12,6 @@ import java.time.LocalDateTime;
 public class PhimStatisticResponse {
     private String tenPhim;
     private Long soLuongSuatChieu;
+    private Long soLuongVeDaBan;
     private Double tongDoanhThu;
-    private LocalDateTime thoiGian;
 }

@@ -1,5 +1,6 @@
 package com.example.MovieTicker.repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -41,28 +42,28 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     JOIN v.suatChieu s
     JOIN s.phim p
     JOIN s.phongChieu pc
-    WHERE h.trangThai = 'PAID'
+    WHERE h.trangThai = 'PAID' AND s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
     GROUP BY h.maHD, h.ngayLap, h.trangThai, h.tongTien, s.thoiGianBatDau, p.tenPhim, pc.tenPhong
 """)
-    List<HoaDonSatisticResponse> findAllHoaDonPaid();
+    List<HoaDonSatisticResponse> findAllHoaDonPaid(LocalDateTime NgayBD, LocalDateTime NgayKT);
 
 
     @Query("""
     SELECT new com.example.MovieTicker.response.PhimStatisticResponse(
         p.tenPhim,
+        COUNT(v),
         COUNT(s),
-        SUM(h.tongTien),
-        s.thoiGianBatDau
+        SUM(h.tongTien)
     )
     FROM HoaDon h
     JOIN h.ves v
     JOIN v.suatChieu s
     JOIN s.phim p
-    WHERE h.trangThai = 'PAID'
+    WHERE h.trangThai = 'PAID' AND s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
    GROUP BY p.tenPhim, s.thoiGianBatDau
-   ORDER BY p.tenPhim, s.thoiGianBatDau
+   ORDER BY SUM(h.tongTien), COUNT(s) DESC
     """)
-    List<PhimStatisticResponse> findAllPhimStatistic();
+    List<PhimStatisticResponse> findAllPhimStatistic(LocalDateTime NgayBD, LocalDateTime NgayKT);
 
 
     List<HoaDon> findByUserOrderByNgayLapDesc(User user);
