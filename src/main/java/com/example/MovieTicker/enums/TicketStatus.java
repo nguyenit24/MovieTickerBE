@@ -4,6 +4,7 @@ public enum TicketStatus {
     PROCESSING("PROCESSING", "Đang xử lý"),
     PAID("PAID", "Đã thanh toán"), 
     EXPIRED("EXPIRED", "Đã hết hạn"),
+    REFUNDED("REFUNDED", "Đã hoàn tiền"),
     CANCELLED("CANCELLED", "Đã hủy");
 
     private final String code;

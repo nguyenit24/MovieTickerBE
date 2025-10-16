@@ -345,4 +345,154 @@ public class EmailService {
         if (url.startsWith("http://") || url.startsWith("https://")) return "HTTP URL";
         return "Local File Path";
     }
+
+    /**
+     * Gửi email thông báo hoàn tiền thành công
+     */
+    public void sendRefundInvoiceEmail(String to, HoaDonResponse invoiceDetails, String refundTransactionNo) {
+        System.out.println("=== START SENDING REFUND EMAIL ===");
+        System.out.println("To: " + to);
+        System.out.println("Invoice: " + (invoiceDetails != null ? invoiceDetails.getMaHD() : "null"));
+        System.out.println("Refund Transaction: " + refundTransactionNo);
+        
+        if (invoiceDetails == null || invoiceDetails.getDanhSachVe() == null || invoiceDetails.getDanhSachVe().isEmpty()) {
+            System.err.println("✗ Invalid invoice details or no tickets found");
+            return;
+        }
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setTo(to);
+            helper.setSubject("🔄 Thông Báo Hoàn Tiền - Mã HĐ: " + invoiceDetails.getMaHD());
+            
+            // Format thời gian
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            String ngayLap = invoiceDetails.getNgayLap() != null ? 
+                invoiceDetails.getNgayLap().format(formatter) : "N/A";
+            String ngayHoanTien = LocalDateTime.now().format(formatter);
+            
+            // Tạo HTML content với format giống success email
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html>")
+                .append("<html><head><meta charset='UTF-8'>")
+                .append("<meta name='viewport' content='width=device-width,initial-scale=1.0'>")
+                .append("</head><body style='margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f5f5'>")
+                .append("<div style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1)'>")
+                
+                // Header - Giống success nhưng màu vàng cho refund
+                .append("<div style='background:linear-gradient(135deg,#ffc107 0%,#ff9800 100%);color:#fff;padding:40px 30px;text-align:center'>")
+                .append("<h1 style='margin:0 0 10px;font-size:28px'>🔄 HOÀN TIỀN THÀNH CÔNG</h1>")
+                .append("<p style='margin:0;font-size:16px;opacity:0.9'>Mã hóa đơn: ").append(escapeHtml(invoiceDetails.getMaHD())).append("</p>")
+                .append("</div>")
+                
+                // Content
+                .append("<div style='padding:30px'>")
+                
+                // Warning badge
+                .append("<div style='background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:15px;margin-bottom:20px'>")
+                .append("<p style='margin:0;color:#856404;font-size:14px'><strong>⚠️ LƯU Ý:</strong> Vé đã được hoàn tiền và không còn hiệu lực sử dụng.</p>")
+                .append("</div>")
+                
+                // Thông tin hoàn tiền
+                .append("<h2 style='color:#333;margin:0 0 15px;font-size:20px'>📋 Thông tin hoàn tiền</h2>")
+                .append("<table style='width:100%;border-collapse:collapse;margin-bottom:25px'>")
+                .append(buildInfoRow("Mã giao dịch hoàn", refundTransactionNo))
+                .append(buildInfoRow("Ngày đặt vé", ngayLap))
+                .append(buildInfoRow("Ngày hoàn tiền", ngayHoanTien))
+                .append(buildInfoRow("Phương thức", invoiceDetails.getPhuongThucThanhToan()))
+                .append("</table>");
+            
+            // Tổng tiền hoàn
+            String formattedTotal = String.format("%,.0f", invoiceDetails.getTongTien());
+            html.append("<div style='background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:20px;text-align:center;margin:20px 0'>")
+                .append("<p style='margin:0;color:#856404;font-size:14px'>Số tiền hoàn</p>")
+                .append("<div style='font-size:32px;font-weight:bold;color:#ff9800;margin:5px 0'>")
+                .append(formattedTotal)
+                .append(" VNĐ</div>")
+                .append("</div>");
+            
+            // Tickets
+            if (invoiceDetails.getDanhSachVe() != null && !invoiceDetails.getDanhSachVe().isEmpty()) {
+                html.append("<h2 style='color:#333;margin:30px 0 20px;font-size:20px'>🎫 Chi tiết vé đã hoàn</h2>");
+                
+                int qrIndex = 0;
+                for (VeResponse ve : invoiceDetails.getDanhSachVe()) {
+                    html.append(buildRefundTicketCard(ve, qrIndex, formatter, helper));
+                    qrIndex++;
+                }
+            }
+            
+            // Info box
+            html.append("<div style='background:#f8f9fa;border-left:4px solid #ffc107;border-radius:4px;padding:15px;margin:20px 0'>")
+                .append("<h3 style='margin:0 0 10px;color:#333;font-size:16px'>💰 Thông tin hoàn trả</h3>")
+                .append("<p style='margin:5px 0;color:#666;font-size:14px;line-height:1.6'>")
+                .append("Số tiền sẽ được hoàn vào tài khoản thanh toán của bạn trong vòng 7-10 ngày làm việc.<br>")
+                .append("Nếu có thắc mắc, vui lòng liên hệ bộ phận CSKH.</p>")
+                .append("</div>")
+                
+                .append("</div>") // End padding
+                
+                // Footer
+                .append("<div style='text-align:center;padding:20px;color:#999;font-size:12px'>")
+                .append("<p style='margin:5px 0'>Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>")
+                .append("<p style='margin:5px 0'>© 2025 Cinema System. All rights reserved.</p>")
+                .append("</div>")
+                
+                .append("</div></body></html>");
+            
+            helper.setText(html.toString(), true);
+            
+            mailSender.send(message);
+            System.out.println("✓ Refund email sent successfully");
+            
+        } catch (MessagingException e) {
+            System.err.println("✗ Error sending refund email: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    // ============= BUILD REFUND TICKET CARD =============
+    private String buildRefundTicketCard(VeResponse ve, int qrIndex, DateTimeFormatter formatter, MimeMessageHelper helper) {
+        StringBuilder card = new StringBuilder();
+        LocalDateTime thoiGianChieu = ve.getThoiGianChieu();
+        String formattedTime = thoiGianChieu != null ? thoiGianChieu.format(formatter) : "N/A";
+
+        card.append("<div style='border:2px dashed #ffc107;border-radius:10px;padding:20px;margin:15px 0;background:#fffbf0'>")
+            .append("<div style='display:flex;justify-content:space-between;align-items:center;'>")
+            
+            // Bên trái: thông tin vé
+            .append("<div style='flex:1; padding-right:20px;'>")
+            .append("<h3 style='color:#ff9800;margin:0 0 15px;font-size:18px'>🎬 ").append(escapeHtml(ve.getTenPhim())).append("</h3>")
+            .append("<p style='margin:5px 0;color:#666'><b>Mã vé:</b> ").append(escapeHtml(ve.getMaVe())).append("</p>")
+            .append("<p style='margin:5px 0;color:#666'><b>Phòng:</b> ").append(escapeHtml(ve.getTenPhongChieu())).append("</p>")
+            .append("<p style='margin:5px 0;color:#666'><b>Ghế:</b> <span style='display:inline-block;padding:4px 12px;background:#ffc107;color:#000;border-radius:4px;font-weight:bold'>")
+            .append(escapeHtml(ve.getTenGhe())).append("</span></p>")
+            .append("<p style='margin:5px 0;color:#666'><b>Suất chiếu:</b> ").append(escapeHtml(formattedTime)).append("</p>")
+            .append("<p style='margin:10px 0 0;'><span style='background:#fff3cd;color:#856404;padding:5px 10px;border-radius:4px;font-size:12px;font-weight:bold;'>")
+            .append("⚠️ ĐÃ HOÀN TIỀN - VÔ HIỆU HÓA</span></p>")
+            .append("</div>");
+
+        // Bên phải: QR Code với overlay vô hiệu hóa
+        if (ve.getQrCodeUrl() != null && !ve.getQrCodeUrl().isEmpty()) {
+            String contentId = "qr" + qrIndex;
+            card.append("<div style='flex-shrink:0; text-align:center; position:relative;'>")
+                .append("<div style='position:relative; display:inline-block;'>")
+                .append("<img src='cid:").append(contentId).append("' ")
+                .append("alt='QR Code' style='width:120px;height:120px;border:3px solid #ffc107;border-radius:8px;background:#fff;padding:8px;opacity:0.5;'/>")
+                .append("<div style='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(220,53,69,0.9);color:#fff;padding:8px 12px;border-radius:4px;font-size:11px;font-weight:bold;white-space:nowrap;'>")
+                .append("VÔ HIỆU HÓA</div>")
+                .append("</div>")
+                .append("<p style='color:#dc3545;font-size:11px;margin:5px 0;'>QR không còn hiệu lực</p>")
+                .append("</div>");
+            
+            // Attach QR code
+            attachQRCode(helper, ve.getQrCodeUrl(), contentId);
+        }
+
+        card.append("</div></div>");
+
+        return card.toString();
+    }
 }
