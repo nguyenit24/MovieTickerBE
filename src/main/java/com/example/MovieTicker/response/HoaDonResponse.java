@@ -33,6 +33,7 @@ public class HoaDonResponse {
     private Integer soLuongVe;
     private LocalDateTime expiredAt;
     private Boolean isExpired;
+    private String requestId;
     
     // Thông tin khách vãng lai
     private String tenKhachHang;

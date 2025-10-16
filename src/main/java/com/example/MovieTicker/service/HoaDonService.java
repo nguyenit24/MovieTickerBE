@@ -214,7 +214,7 @@ public class HoaDonService {
         long amount = paymentRequest.getAmount() * 100;
         String vnp_Amount = String.valueOf(amount);
         String vnp_OrderInfo = "Hoan tien GD OrderId:" + vnp_TxnRef;
-        String vnp_TransactionNo = ""; //Assuming value of the parameter "vnp_TransactionNo" does not exist on your system.
+        String vnp_TransactionNo = paymentRequest.getTransId();
         String vnp_TransactionDate = paymentRequest.getTransDate();
         String vnp_CreateBy = "System";
 
@@ -236,7 +236,7 @@ public class HoaDonService {
         vnp_Params.addProperty("vnp_OrderInfo", vnp_OrderInfo);
 
         if (vnp_TransactionNo != null && !vnp_TransactionNo.isEmpty()) {
-            vnp_Params.addProperty("vnp_TransactionNo", "{get value of vnp_TransactionNo}");
+            vnp_Params.addProperty("vnp_TransactionNo", vnp_TransactionNo);
         }
 
         vnp_Params.addProperty("vnp_TransactionDate", vnp_TransactionDate);
@@ -300,7 +300,7 @@ public class HoaDonService {
     }
 
     @Transactional
-    public void updatePaymentStatus(String orderId, String transactionNo, String transactionDate, String responseCode) {
+    public void updatePaymentStatus(String orderId, String transactionNo, String transactionDate, String responseCode,String requestId) {
         try {
             HoaDon hoaDon = getHoaDonByMaHD(orderId);
 
@@ -313,7 +313,9 @@ public class HoaDonService {
             hoaDon.setTransactionNo(transactionNo);
             hoaDon.setTransactionDate(transactionDate);
             hoaDon.setResponseCode(responseCode);
-
+            if(requestId != null && !requestId.trim().isEmpty()) {
+                hoaDon.setRequestId(requestId);
+            }
             // Cập nhật trạng thái dựa trên response code
             if ("00".equals(responseCode) || "0".equals(responseCode)) {
                 hoaDon.setTrangThai(InvoiceStatus.PAID.getCode());
@@ -417,9 +419,7 @@ public class HoaDonService {
         }
     }
 
-    /**
-     * Hủy hóa đơn manual khi user out ra không thanh toán
-     */
+    
     public void cancelInvoiceManual(String maHD) {
         try {
             HoaDon hoaDon = getHoaDonByMaHD(maHD);
@@ -446,9 +446,86 @@ public class HoaDonService {
         }
     }
 
-    /**
-     * Kiểm tra trạng thái hóa đơn hiện tại
-     */
+  
+    @Transactional
+    public void processRefund(String maHD, String transactionNo) {
+        try {
+            HoaDon hoaDon = getHoaDonByMaHD(maHD);
+
+            if (!InvoiceStatus.PAID.getCode().equals(hoaDon.getTrangThai())) {
+                throw new RuntimeException("Chỉ có thể hoàn tiền cho hóa đơn đã thanh toán. Trạng thái hiện tại: " + hoaDon.getTrangThai());
+            }
+
+            if (hoaDon.getVes() != null && !hoaDon.getVes().isEmpty()) {
+                LocalDateTime now = LocalDateTime.now();
+                for (Ve ve : hoaDon.getVes()) {
+                    LocalDateTime showTime = ve.getSuatChieu().getThoiGianBatDau();
+                    if (now.isAfter(showTime.plusHours(1))) {
+                        throw new RuntimeException("Không thể hoàn tiền. Suất chiếu đã diễn ra quá 1 giờ.");
+                    }
+                }
+            }
+
+            hoaDon.setTrangThai(InvoiceStatus.REFUNDED.getCode());
+            hoaDon.setGhiChu((hoaDon.getGhiChu() != null ? hoaDon.getGhiChu() : "") + 
+                            "\n[Hoàn tiền] Mã GD: " + transactionNo + " - Ngày: " + LocalDateTime.now());
+
+            // Cập nhật trạng thái và tạo lại QR code cho tất cả vé
+            if (hoaDon.getVes() != null) {
+                for (Ve ve : hoaDon.getVes()) {
+                    ve.setTrangThai(TicketStatus.REFUNDED.getCode());
+                    
+                    // Tạo lại QR code với trạng thái REFUNDED
+                    try {
+                        String tenKH = hoaDon.getUser() != null ? hoaDon.getUser().getHoTen() : hoaDon.getTenKhachHang();
+                        String sdt = hoaDon.getUser() != null ? hoaDon.getUser().getSdt() : hoaDon.getSdtKhachHang();
+                        
+                        String qrContent = qrCodeService.createTicketQRContent(
+                            ve.getMaVe(),
+                            ve.getSuatChieu().getPhim().getTenPhim(),
+                            ve.getSuatChieu().getPhongChieu().getTenPhong(),
+                            ve.getGhe().getTenGhe(),
+                            ve.getSuatChieu().getThoiGianBatDau().toString(),
+                            TicketStatus.REFUNDED.getCode(),
+                            tenKH != null ? tenKH : "Guest",
+                            sdt != null ? sdt : ""
+                        );
+                        
+                        String qrCodeUrl = qrCodeService.generateQRCode(qrContent, ve.getMaVe());
+                        ve.setQrCodeUrl(qrCodeUrl);
+                        
+                    } catch (Exception e) {
+                        System.err.println("Lỗi khi tạo QR code cho vé hoàn tiền " + ve.getMaVe() + ": " + e.getMessage());
+                    }
+                }
+            }
+
+            HoaDon savedHoaDon = hoaDonRepository.save(hoaDon);
+            
+            // Gửi email thông báo hoàn tiền
+            try {
+                HoaDonResponse response = convertToHoaDonResponse(savedHoaDon);
+                String emailTo = null;
+                
+                if (savedHoaDon.getUser() != null && savedHoaDon.getUser().getEmail() != null) {
+                    emailTo = savedHoaDon.getUser().getEmail();
+                } else if (savedHoaDon.getEmailKhachHang() != null && !savedHoaDon.getEmailKhachHang().trim().isEmpty()) {
+                    emailTo = savedHoaDon.getEmailKhachHang();
+                }
+                
+                if (emailTo != null) {
+                    emailService.sendRefundInvoiceEmail(emailTo, response, transactionNo);
+                }
+            } catch (Exception e) {
+                System.err.println("Lỗi khi gửi email thông báo hoàn tiền: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi xử lý hoàn tiền: " + e.getMessage());
+        }
+    }
+
+   
     public String getInvoiceStatus(String maHD) {
         HoaDon hoaDon = getHoaDonByMaHD(maHD);
 
@@ -567,6 +644,7 @@ public class HoaDonService {
                 .soLuongVe(danhSachVeResponse.size())
                 .expiredAt(expiredAt)
                 .isExpired(isExpired)
+                .requestId(hoaDon.getRequestId())
                 .tenKhachHang(hoaDon.getTenKhachHang())
                 .sdtKhachHang(hoaDon.getSdtKhachHang())
                 .emailKhachHang(hoaDon.getEmailKhachHang())

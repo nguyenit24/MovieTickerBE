@@ -56,6 +56,8 @@ public class HoaDon {
     private String transactionDate;
     private String responseCode;
 
+    private String requestId;
+
     // Thông tin khách vãng lai (khi user = null)
     private String tenKhachHang;
     private String sdtKhachHang;
