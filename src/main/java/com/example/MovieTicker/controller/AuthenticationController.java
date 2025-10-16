@@ -33,14 +33,14 @@ public class AuthenticationController {
                 .build();
     }
 
-    @PostMapping("/register")
-    public ApiResponse<Void> register(@RequestBody @Valid RegistrationRequest request) {
-        taiKhoanService.register(request);
-        return ApiResponse.<Void>builder()
-                .code(201)
-                .message("User registered successfully")
-                .build();
-    }
+//    @PostMapping("/register")
+//    public ApiResponse<Void> register(@RequestBody @Valid RegistrationRequest request) {
+//        taiKhoanService.register(request);
+//        return ApiResponse.<Void>builder()
+//                .code(201)
+//                .message("User registered successfully")
+//                .build();
+//    }
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws JOSEException, ParseException {
@@ -80,4 +80,40 @@ public class AuthenticationController {
                 .build();
     }
 
+    @PostMapping("/register")
+    public ApiResponse<String> register(@RequestBody @Valid RegistrationRequest request) {
+        authenticateService.register(request);
+        return ApiResponse.<String>builder()
+                .code(201)
+                .message("Mã OTP đã được gửi đến email của bạn. Vui lòng xác thực để hoàn tất đăng ký.")
+                .data(request.getEmail()) // Trả về email để frontend biết cần xác thực tài khoản nào
+                .build();
+    }
+
+    @PostMapping("/verify-otp")
+    public ApiResponse<Void> verifyOtp(@RequestBody @Valid VerifyOtpRequest request) {
+        authenticateService.verifyOtp(request);
+        return ApiResponse.<Void>builder()
+                .code(200)
+                .message("Xác thực OTP thành công. Tài khoản đã được kích hoạt.")
+                .build();
+    }
+
+    @PostMapping("/resend-otp")
+    public ApiResponse<String> resendOtp(@RequestBody @Valid ResendOtpRequest request) {
+        authenticateService.resendOtp(request);
+        return ApiResponse.<String>builder()
+                .code(200)
+                .message("Một mã OTP mới đã được gửi đến email của bạn.")
+                .data(request.getEmail())
+                .build();
+    }
+    @PostMapping("/google")
+    public ApiResponse<AuthenticateResponse> googleLogin(@RequestBody GoogleLoginRequest request) {
+        var result = authenticateService.loginWithGoogle(request.getTokenId());
+        return ApiResponse.<AuthenticateResponse>builder()
+                .message("Google authentication successful")
+                .data(result)
+                .build();
+    }
 }

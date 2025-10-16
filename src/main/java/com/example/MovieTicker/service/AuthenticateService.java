@@ -1,25 +1,25 @@
 package com.example.MovieTicker.service;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.Random;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import com.example.MovieTicker.entity.InvalidatedToken;
-import com.example.MovieTicker.entity.PasswordResetToken;
-import com.example.MovieTicker.entity.TaiKhoan;
-import com.example.MovieTicker.entity.VaiTro;
+import com.example.MovieTicker.entity.*;
 import com.example.MovieTicker.exception.AppException;
 import com.example.MovieTicker.exception.ErrorCode;
-import com.example.MovieTicker.repository.InvalidatedRepository;
-import com.example.MovieTicker.repository.PasswordResetTokenRepository;
-import com.example.MovieTicker.repository.TaiKhoanRepository;
-import com.example.MovieTicker.repository.UserRepository;
+import com.example.MovieTicker.repository.*;
 import com.example.MovieTicker.request.*;
 import com.example.MovieTicker.response.AuthenticateResponse;
 import com.example.MovieTicker.response.IntrospectResponse;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,10 +54,113 @@ public class AuthenticateService {
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final VaiTroRepository vaiTroRepository;
+    private final PendingRegistrationRepository pendingRepo;
 
     @Value("${jwt.Key}") // Lấy key từ application.yaml
     @NonFinal
     String singerKey;
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id}")
+    private String googleClientId;
+
+    @Transactional
+    public void register(RegistrationRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_EXISTS);
+        }
+        if (taiKhoanRepository.existsById(request.getTenDangNhap())) {
+            throw new AppException(ErrorCode.USER_EXISTS);
+        }
+
+        pendingRepo.findByEmail(request.getEmail()).ifPresent(pendingRepo::delete);
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+
+        // 1. Tạo OTP
+        String otp = new Random().ints(6, 0, 10).mapToObj(String::valueOf).collect(Collectors.joining());
+
+        // 2. Lưu thông tin đăng ký và OTP vào bảng tạm
+        PendingRegistration pendingUser = new PendingRegistration();
+        pendingUser.setTenDangNhap(request.getTenDangNhap());
+        pendingUser.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
+        pendingUser.setHoTen(request.getHoTen());
+        pendingUser.setEmail(request.getEmail());
+        pendingUser.setSdt(request.getSdt());
+        pendingUser.setNgaySinh(request.getNgaySinh());
+        pendingUser.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // Yêu cầu hết hạn sau 10 phút
+
+        pendingUser.setOtp(otp); // Lưu OTP
+        pendingUser.setOtpGeneratedTime(LocalDateTime.now()); // Lưu thời gian tạo OTP
+
+        pendingRepo.save(pendingUser);
+
+        // 3. Gửi email chứa OTP
+        emailService.sendOtpEmail(request.getEmail(), otp);
+    }
+
+    private void sendNewOtpForUser(String email) {
+        String otp = new Random().ints(6, 0, 10).mapToObj(String::valueOf).collect(Collectors.joining());
+
+        // Dùng tạm một đối tượng TaiKhoan để tìm kiếm token, vì PasswordResetToken liên kết với TaiKhoan
+        TaiKhoan tempKey = new TaiKhoan();
+        tempKey.setTenDangNhap(email);
+
+        passwordResetTokenRepository.findByTaiKhoan(tempKey)
+                .ifPresent(passwordResetTokenRepository::delete);
+
+        PasswordResetToken otpToken = new PasswordResetToken(otp, tempKey);
+        otpToken.setExpiryDate(LocalDateTime.now().plusMinutes(5));
+        passwordResetTokenRepository.save(otpToken);
+
+        emailService.sendOtpEmail(email, otp);
+    }
+
+    @Transactional
+    public void verifyOtp(VerifyOtpRequest request) {
+        // 1. Lấy thông tin đăng ký đang chờ từ bảng tạm qua email
+        PendingRegistration registrationData = pendingRepo.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST)); // "Yêu cầu đăng ký không hợp lệ hoặc đã hết hạn."));
+
+        // 2. Kiểm tra OTP
+        if (registrationData.getOtp() == null || !registrationData.getOtp().equals(request.getOtp())) {
+            throw new AppException(ErrorCode.INVALID_TOKEN); // "Mã OTP không chính xác.");
+        }
+
+        // 3. Kiểm tra OTP có hết hạn không (ví dụ 5 phút)
+        if (registrationData.getOtpGeneratedTime().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.TOKEN_EXPIRED); // "Mã OTP đã hết hạn.");
+        }
+
+        // 4. Tạo tài khoản trong DB từ dữ liệu bảng tạm
+        User user = new User();
+        user.setHoTen(registrationData.getHoTen());
+        user.setEmail(registrationData.getEmail());
+        user.setSdt(registrationData.getSdt());
+        user.setNgaySinh(registrationData.getNgaySinh());
+        User savedUser = userRepository.save(user);
+
+        VaiTro userRole = vaiTroRepository.findByTenVaiTro("USER")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+
+        TaiKhoan taiKhoan = new TaiKhoan();
+        taiKhoan.setTenDangNhap(registrationData.getTenDangNhap());
+        taiKhoan.setMatKhau(registrationData.getMatKhau());
+        taiKhoan.setUser(savedUser);
+        taiKhoan.setVaiTro(userRole);
+        taiKhoanRepository.save(taiKhoan);
+
+        // 5. Xóa dữ liệu trong bảng tạm sau khi hoàn tất
+        pendingRepo.delete(registrationData);
+    }
+
+    // SỬA LẠI HÀM RESEND OTP
+    public void resendOtp(ResendOtpRequest request) {
+        // Kiểm tra xem có phiên đăng ký đang chờ không
+        if (!pendingRepo.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.INVALID_REQUEST); // "Phiên đăng ký không tồn tại hoặc đã hết hạn.");
+        }
+        sendNewOtpForUser(request.getEmail());
+    }
 
     // XU LY LOGIC Refresh Token
     public AuthenticateResponse authenticated(AuthenticateRequest request){
@@ -239,5 +342,55 @@ public class AuthenticateService {
             }
         }
         return scopeString.toString();
+    }
+    @Transactional
+    public AuthenticateResponse loginWithGoogle(String tokenId) {
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            GoogleIdToken idToken = verifier.verify(tokenId);
+            if (idToken == null) {
+                throw new AppException(ErrorCode.UNTHENTICATED);
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            String email = payload.getEmail();
+            String hoTen = (String) payload.get("name");
+
+            // Tìm hoặc tạo người dùng mới
+            User user = userRepository.findByEmail(email).orElseGet(() -> {
+                User newUser = new User();
+                newUser.setEmail(email);
+                newUser.setHoTen(hoTen);
+                newUser.setSdt(""); // Có thể yêu cầu người dùng cập nhật sau
+                newUser.setNgaySinh(LocalDate.now()); // Giá trị mặc định
+                return userRepository.save(newUser);
+            });
+            PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+            // Tìm hoặc tạo tài khoản
+            TaiKhoan taiKhoan = taiKhoanRepository.findByUser(user).orElseGet(() -> {
+                TaiKhoan newAccount = new TaiKhoan();
+                newAccount.setTenDangNhap("google_" + payload.getSubject()); // Tạo username duy nhất
+                newAccount.setMatKhau(passwordEncoder.encode(UUID.randomUUID().toString())); // Mật khẩu ngẫu nhiên
+                newAccount.setUser(user);
+                newAccount.setVaiTro(vaiTroRepository.findByTenVaiTro("USER").orElseThrow());
+                return taiKhoanRepository.save(newAccount);
+            });
+
+            // Tạo và trả về token của hệ thống
+            var accessToken = generateToken(taiKhoan, 3600 * 1000); // 1 giờ
+            var refreshToken = generateToken(taiKhoan, 3600 * 24 * 7 * 1000); // 7 ngày
+
+            return AuthenticateResponse.builder()
+                    .authenticated(true)
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+
+        } catch (GeneralSecurityException | IOException e) {
+            throw new AppException(ErrorCode.UNTHENTICATED);
+        }
     }
 }

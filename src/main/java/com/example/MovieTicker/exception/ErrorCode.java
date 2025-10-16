@@ -22,7 +22,8 @@ public enum ErrorCode {
     DOB_INVALID(1012, "User must be at least {min} years old", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(2003, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_TOKEN(1013, "Invalid token", HttpStatus.BAD_REQUEST),
-    TOKEN_EXPIRED(1014, "Token has expired", HttpStatus.BAD_REQUEST);
+    TOKEN_EXPIRED(1014, "Token has expired", HttpStatus.BAD_REQUEST),
+    VALIDATION_ERROR(4000, "Input validation error", HttpStatus.BAD_REQUEST);
 
     private int code;
     private String message;
