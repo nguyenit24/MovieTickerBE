@@ -143,6 +143,30 @@ public class HoaDonService {
         return momoAPI.createMomoRefund(request);
     }
 
+    public CreateMomoResponse checkmomorefund(PaymentRequest paymentRequest) {
+        String orderId = paymentRequest.getOrderId();
+        String requestId = paymentRequest.getRequestId();
+        
+        // Tạo signature cho query
+        String rawSignature = "accessKey=" + accessKey
+                + "&orderId=" + orderId
+                + "&partnerCode=" + partnerCode
+                + "&requestId=" + requestId;
+        
+        String signature = PaymentConfig.hmacSHA256(secretKey, rawSignature);
+        
+        CreateMomoRefundRequest request = CreateMomoRefundRequest.builder()
+                .partnerCode(partnerCode)
+                .orderId(orderId)
+                .requestId(requestId)
+                .lang("vi")
+                .signature(signature)
+                .build();
+        
+        return momoAPI.checkRefundStatus(request);
+    }
+       
+
     public String createVnPayRequest(PaymentRequest paymentRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
         String orderId = paymentRequest.getOrderId();
         long amount = paymentRequest.getAmount() * 100;
@@ -651,10 +675,7 @@ public class HoaDonService {
                 .build();
     }
 
-    /**
-     * Lấy user hiện tại từ Security Context (JWT token)
-     * @return User hiện tại hoặc null nếu không có authentication
-     */
+   
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
@@ -669,10 +690,7 @@ public class HoaDonService {
         return null;
     }
 
-    /**
-     * Lấy danh sách hóa đơn của user hiện tại
-     * @return Danh sách hóa đơn của user
-     */
+   
     public List<HoaDonResponse> getMyInvoices() {
         User currentUser = getCurrentUser();
         if (currentUser == null) {

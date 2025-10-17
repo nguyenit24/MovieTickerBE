@@ -2,6 +2,7 @@ package com.example.MovieTicker.config;
 
 import com.example.MovieTicker.request.CreateMomoRefundRequest;
 import com.example.MovieTicker.request.CreateMomoRequest;
+import com.example.MovieTicker.request.PaymentRequest;
 import com.example.MovieTicker.response.CreateMomoResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,5 +17,8 @@ public interface MomoAPI {
 
     @PostMapping("/refund")
     CreateMomoResponse createMomoRefund(@RequestBody CreateMomoRefundRequest request);
+
+    @PostMapping("/query")
+    CreateMomoResponse checkRefundStatus(@RequestBody CreateMomoRefundRequest request);
 
 }

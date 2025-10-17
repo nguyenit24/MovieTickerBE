@@ -346,9 +346,6 @@ public class EmailService {
         return "Local File Path";
     }
 
-    /**
-     * Gửi email thông báo hoàn tiền thành công
-     */
     public void sendRefundInvoiceEmail(String to, HoaDonResponse invoiceDetails, String refundTransactionNo) {
         System.out.println("=== START SENDING REFUND EMAIL ===");
         System.out.println("To: " + to);
@@ -362,10 +359,14 @@ public class EmailService {
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
+            // ✅ QUAN TRỌNG: Phải set multipart = true nếu có attach QR codes
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
             helper.setTo(to);
+            helper.setFrom("noreply@cinema.com"); // ✅ Thêm setFrom
             helper.setSubject("🔄 Thông Báo Hoàn Tiền - Mã HĐ: " + invoiceDetails.getMaHD());
+            
+            System.out.println("Building refund email HTML...");
             
             // Format thời gian
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -373,7 +374,7 @@ public class EmailService {
                 invoiceDetails.getNgayLap().format(formatter) : "N/A";
             String ngayHoanTien = LocalDateTime.now().format(formatter);
             
-            // Tạo HTML content với format giống success email
+            // Tạo HTML content
             StringBuilder html = new StringBuilder();
             html.append("<!DOCTYPE html>")
                 .append("<html><head><meta charset='UTF-8'>")
@@ -381,7 +382,7 @@ public class EmailService {
                 .append("</head><body style='margin:0;padding:20px;font-family:Arial,sans-serif;background:#f5f5f5'>")
                 .append("<div style='max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.1)'>")
                 
-                // Header - Giống success nhưng màu vàng cho refund
+                // Header
                 .append("<div style='background:linear-gradient(135deg,#ffc107 0%,#ff9800 100%);color:#fff;padding:40px 30px;text-align:center'>")
                 .append("<h1 style='margin:0 0 10px;font-size:28px'>🔄 HOÀN TIỀN THÀNH CÔNG</h1>")
                 .append("<p style='margin:0;font-size:16px;opacity:0.9'>Mã hóa đơn: ").append(escapeHtml(invoiceDetails.getMaHD())).append("</p>")
@@ -404,8 +405,24 @@ public class EmailService {
                 .append(buildInfoRow("Phương thức", invoiceDetails.getPhuongThucThanhToan()))
                 .append("</table>");
             
-            // Tổng tiền hoàn
-            String formattedTotal = String.format("%,.0f", invoiceDetails.getTongTien());
+            // Tổng tiền hoàn - ✅ Sửa lỗi format
+            String formattedTotal;
+            try {
+                Object tongTien = invoiceDetails.getTongTien();
+                if (tongTien instanceof Double || tongTien instanceof Float) {
+                    formattedTotal = String.format("%,.0f", ((Number) tongTien).doubleValue());
+                } else if (tongTien instanceof Number) {
+                    formattedTotal = String.format("%,d", ((Number) tongTien).longValue());
+                } else if (tongTien != null) {
+                    formattedTotal = String.format("%,.0f", Double.parseDouble(tongTien.toString()));
+                } else {
+                    formattedTotal = "0";
+                }
+            } catch (Exception e) {
+                System.err.println("✗ Error formatting total: " + e.getMessage());
+                formattedTotal = invoiceDetails.getTongTien() != null ? invoiceDetails.getTongTien().toString() : "0";
+            }
+            
             html.append("<div style='background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:20px;text-align:center;margin:20px 0'>")
                 .append("<p style='margin:0;color:#856404;font-size:14px'>Số tiền hoàn</p>")
                 .append("<div style='font-size:32px;font-weight:bold;color:#ff9800;margin:5px 0'>")
@@ -419,9 +436,11 @@ public class EmailService {
                 
                 int qrIndex = 0;
                 for (VeResponse ve : invoiceDetails.getDanhSachVe()) {
-                    html.append(buildRefundTicketCard(ve, qrIndex, formatter, helper));
+                    html.append(buildRefundTicketCardHTML(ve, qrIndex, formatter)); // ✅ Tách riêng HTML
                     qrIndex++;
                 }
+                
+                System.out.println("Added " + invoiceDetails.getDanhSachVe().size() + " refund ticket cards");
             }
             
             // Info box
@@ -442,19 +461,42 @@ public class EmailService {
                 
                 .append("</div></body></html>");
             
+            System.out.println("✓ HTML content built, length: " + html.length());
+            
+            // ✅ Set HTML content trước khi attach files
             helper.setText(html.toString(), true);
             
+            // ✅ Attach QR codes SAU KHI đã set text
+            if (invoiceDetails.getDanhSachVe() != null && !invoiceDetails.getDanhSachVe().isEmpty()) {
+                System.out.println("Attaching QR codes for refund email...");
+                int qrIndex = 0;
+                for (VeResponse ve : invoiceDetails.getDanhSachVe()) {
+                    if (ve.getQrCodeUrl() != null && !ve.getQrCodeUrl().isEmpty()) {
+                        System.out.println("  - Attaching QR for ticket: " + ve.getMaVe());
+                        attachQRCode(helper, ve.getQrCodeUrl(), "qr" + qrIndex);
+                    }
+                    qrIndex++;
+                }
+            }
+            
+            System.out.println("Sending refund email...");
             mailSender.send(message);
-            System.out.println("✓ Refund email sent successfully");
+            System.out.println("✓ Refund email sent successfully to: " + to);
+            System.out.println("=== REFUND EMAIL SENT SUCCESSFULLY ===\n");
             
         } catch (MessagingException e) {
+            System.err.println("✗ MessagingException: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Không thể gửi email hoàn tiền cho: " + to, e);
+        } catch (Exception e) {
             System.err.println("✗ Error sending refund email: " + e.getMessage());
             e.printStackTrace();
+            throw new RuntimeException("Không thể gửi email hoàn tiền cho: " + to, e);
         }
     }
-    
-    // ============= BUILD REFUND TICKET CARD =============
-    private String buildRefundTicketCard(VeResponse ve, int qrIndex, DateTimeFormatter formatter, MimeMessageHelper helper) {
+
+    // ✅ Tách hàm build HTML riêng, KHÔNG truyền helper vào
+    private String buildRefundTicketCardHTML(VeResponse ve, int qrIndex, DateTimeFormatter formatter) {
         StringBuilder card = new StringBuilder();
         LocalDateTime thoiGianChieu = ve.getThoiGianChieu();
         String formattedTime = thoiGianChieu != null ? thoiGianChieu.format(formatter) : "N/A";
@@ -465,9 +507,14 @@ public class EmailService {
             // Bên trái: thông tin vé
             .append("<div style='flex:1; padding-right:20px;'>")
             .append("<h3 style='color:#ff9800;margin:0 0 15px;font-size:18px'>🎬 ").append(escapeHtml(ve.getTenPhim())).append("</h3>")
-            .append("<p style='margin:5px 0;color:#666'><b>Mã vé:</b> ").append(escapeHtml(ve.getMaVe())).append("</p>")
-            .append("<p style='margin:5px 0;color:#666'><b>Phòng:</b> ").append(escapeHtml(ve.getTenPhongChieu())).append("</p>")
-            .append("<p style='margin:5px 0;color:#666'><b>Ghế:</b> <span style='display:inline-block;padding:4px 12px;background:#ffc107;color:#000;border-radius:4px;font-weight:bold'>")
+            .append("<p style='margin:5px 0;color:#666'><b>Mã vé:</b> ").append(escapeHtml(ve.getMaVe())).append("</p>");
+        
+        // Thêm tên phòng chiếu nếu có
+        if (ve.getTenPhongChieu() != null) {
+            card.append("<p style='margin:5px 0;color:#666'><b>Phòng:</b> ").append(escapeHtml(ve.getTenPhongChieu())).append("</p>");
+        }
+        
+        card.append("<p style='margin:5px 0;color:#666'><b>Ghế:</b> <span style='display:inline-block;padding:4px 12px;background:#ffc107;color:#000;border-radius:4px;font-weight:bold'>")
             .append(escapeHtml(ve.getTenGhe())).append("</span></p>")
             .append("<p style='margin:5px 0;color:#666'><b>Suất chiếu:</b> ").append(escapeHtml(formattedTime)).append("</p>")
             .append("<p style='margin:10px 0 0;'><span style='background:#fff3cd;color:#856404;padding:5px 10px;border-radius:4px;font-size:12px;font-weight:bold;'>")
@@ -486,9 +533,6 @@ public class EmailService {
                 .append("</div>")
                 .append("<p style='color:#dc3545;font-size:11px;margin:5px 0;'>QR không còn hiệu lực</p>")
                 .append("</div>");
-            
-            // Attach QR code
-            attachQRCode(helper, ve.getQrCodeUrl(), contentId);
         }
 
         card.append("</div></div>");
