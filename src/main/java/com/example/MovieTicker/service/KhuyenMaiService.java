@@ -7,6 +7,7 @@ import com.example.MovieTicker.response.HoaDonSatisticResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -99,9 +100,10 @@ public class KhuyenMaiService {
 
     public KhuyenMai getKhuyenMaiByCodeValidate(String code) {
         Optional<KhuyenMai> khuyenMai = getKhuyenMaiByCode(code);
-         String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
-        if (username == null || "anonymousUser".equals(username)) {
-            throw new RuntimeException("Chỉ người dùng đã đăng nhập mới có thể sử dụng khuyến mãi");
+        String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
+        System.out.println("User applying promotion: " + username);
+        if(username == null || "anonymousUser".equals(username)) {
+            throw new RuntimeException("Người dùng chưa đăng nhập để sử dụng khuyến mãi");
         }
         LocalDate today = LocalDate.now();
         if(khuyenMai.isPresent()) {

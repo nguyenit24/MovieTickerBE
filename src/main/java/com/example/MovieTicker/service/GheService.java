@@ -151,14 +151,13 @@ public class GheService {
     }
 
     public List<Ghe> getBooking(String maSuatChieu) {
-        // Lấy tất cả vé có trạng thái PAID cho suất chiếu này
         List<Ve> allTickets = veRepository.findBySuatChieuMaSuatChieu(maSuatChieu);
         allTickets.forEach(ve -> {
             System.out.println("Ve ID: " + ve.getMaVe() + ", Ghe: " + ve.getGhe().getTenGhe() + ", Trang Thai: " + ve.getTrangThai());
         });
-        // Filter chỉ lấy vé đã thanh toán và extract ra ghế
         return allTickets.stream()
-                .filter(ve -> TicketStatus.PAID.getCode().equals(ve.getTrangThai()))
+                .filter(ve -> TicketStatus.PAID.getCode().equals(ve.getTrangThai()) ||
+                    TicketStatus.PROCESSING.getCode().equals(ve.getTrangThai()))
                 .map(Ve::getGhe)
                 .collect(Collectors.toList());
     }

@@ -45,6 +45,22 @@ public class UserController {
                 .build();
     }
 
+    @GetMapping("/all")
+    public ApiResponse<?> findAllUsers() {
+        try {
+            return ApiResponse.builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy danh sách user thành công")
+                    .data(userService.findAll())
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
+                    .message(e.getMessage())
+                    .build();
+        }
+    }
+
     @PostMapping("")
     public ApiResponse<?> create(@RequestBody TaiKhoan request) {
         try {
