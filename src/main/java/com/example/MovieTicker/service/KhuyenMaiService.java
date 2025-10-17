@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,16 +99,21 @@ public class KhuyenMaiService {
 
     public KhuyenMai getKhuyenMaiByCodeValidate(String code) {
         Optional<KhuyenMai> khuyenMai = getKhuyenMaiByCode(code);
+         String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
+        if (username == null || "anonymousUser".equals(username)) {
+            throw new RuntimeException("Chỉ người dùng đã đăng nhập mới có thể sử dụng khuyến mãi");
+        }
+        LocalDate today = LocalDate.now();
         if(khuyenMai.isPresent()) {
             KhuyenMai km = khuyenMai.get();
             if(km.getSoLuong() <= 0) {
                 throw new RuntimeException("Khuyến mãi đã hết lượt sử dụng");
             }
             if(km.isTrangThai()) {
-                if(km.getNgayBatDau().isBefore(LocalDate.now()) && km.getNgayKetThuc().isAfter(LocalDate.now())) {
+                if(km.getNgayBatDau().compareTo(today) <= 0 && km.getNgayKetThuc().compareTo(today) >= 0) {
                     return km;
                 } else {
-                    throw new RuntimeException("Khuyến mãi đã hết hạn");
+                    throw new RuntimeException("Khuyến mãi đã hết hạn hoặc chưa đến ngày áp dụng");
                 }
             } else {
                 throw new RuntimeException("Khuyến mãi đã bị vô hiệu hóa");

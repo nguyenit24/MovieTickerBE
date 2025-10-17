@@ -21,4 +21,8 @@ public class CreateMomoResponse {
     private String payUrl;
     private String deeplink;
     private String qrCodeUrl;
+
+    private Long transId;        // ID giao dịch MoMo
+    private String transType;    // Loại giao dịch: "capture" (thanh toán) hoặc "refund" (hoàn tiền)
+    private String refundTrans;  // ID giao dịch hoàn tiền (nếu có)
 }
