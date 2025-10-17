@@ -87,7 +87,7 @@ public class AuthenticateService {
         pendingUser.setEmail(request.getEmail());
         pendingUser.setSdt(request.getSdt());
         pendingUser.setNgaySinh(request.getNgaySinh());
-        pendingUser.setExpiryDate(LocalDateTime.now().plusMinutes(10)); // Yêu cầu hết hạn sau 10 phút
+        pendingUser.setExpiryDate(LocalDateTime.now().plusMinutes(5)); // Yêu cầu hết hạn sau 5 phút
 
         pendingUser.setOtp(otp); // Lưu OTP
         pendingUser.setOtpGeneratedTime(LocalDateTime.now()); // Lưu thời gian tạo OTP
