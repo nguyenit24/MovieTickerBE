@@ -127,4 +127,17 @@ public class PhimService {
     public Page<Phim> getPhimPage(Pageable pageable) {
         return phimRepository.findAll(pageable);
     }
+
+    public List<Phim> getPhimByTrangThai(String trangThai) {
+    return phimRepository.findByTrangThai(trangThai);
+    }
+
+    public List<Phim> getPhimDangChieu() {
+        return phimRepository.findPhimDangChieu();
+    }
+
+    public List<Phim> getPhimSapChieu() {
+        return phimRepository.findPhimSapChieu();
+    }
+
 }

@@ -5,7 +5,7 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-   
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +15,7 @@ import com.example.MovieTicker.entity.Phim;
 import com.example.MovieTicker.request.PhimRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.PhimService;
+import org.springframework.web.bind.annotation.GetMapping;
 
 
 @RestController
@@ -167,4 +168,25 @@ public class PhimController {
                 .data(exists)
                 .build();
     }
+
+
+    @GetMapping("/dangchieu")
+    public ApiResponse<List<Phim>> getPhimDangChieu() {
+        List<Phim> list = phimService.getPhimByTrangThai("Đang chiếu");
+        return ApiResponse.<List<Phim>>builder()
+            .code(HttpStatus.OK.value())
+            .message("Lấy phim đang chiếu thành công")
+            .data(list)
+            .build();
+}
+
+    @GetMapping("/sapchieu")
+    public ApiResponse<List<Phim>> getPhimSapChieu() {
+        List<Phim> list = phimService.getPhimByTrangThai("Sắp chiếu");
+        return ApiResponse.<List<Phim>>builder()
+            .code(HttpStatus.OK.value())
+            .message("Lấy phim sắp chiếu thành công")
+            .data(list)
+            .build();
+}
 }
