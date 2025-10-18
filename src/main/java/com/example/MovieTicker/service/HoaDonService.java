@@ -685,12 +685,16 @@ public class HoaDonService {
     }
 
     public List<HoaDonSatisticResponse> getAllHoaDonResponse(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {
+        NgayBatDau = NgayBatDau.plusHours(7);
+        NgayKetThuc = NgayKetThuc.plusHours(7);
         System.out.println("NgayBatDau: " + NgayBatDau);
         System.out.println("NgayKetThuc: " + NgayKetThuc);
         return hoaDonRepository.findAllHoaDonPaid(NgayBatDau, NgayKetThuc);
     }
 
     public List<PhimStatisticResponse> getAllHoaDonByPhim(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {
+        NgayBatDau = NgayBatDau.plusHours(7);
+        NgayKetThuc = NgayKetThuc.plusHours(7);
         System.out.println("NgayBatDau: " + NgayBatDau);
         System.out.println("NgayKetThuc: " + NgayKetThuc);
         return hoaDonRepository.findAllPhimStatistic(NgayBatDau, NgayKetThuc);

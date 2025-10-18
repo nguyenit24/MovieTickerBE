@@ -397,6 +397,7 @@ public class HoaDonController {
     @GetMapping()
     public ApiResponse<?> getAllHoaDon(@RequestParam LocalDate NgayBD, @RequestParam LocalDate NgayKT) {
         try {
+            System.out.println("NgayBD: " + NgayBD + ", NgayKT: " + NgayKT);
             LocalDateTime start = NgayBD.atStartOfDay(); // 00:00
             LocalDateTime end = NgayKT.plusDays(1).atStartOfDay(); // sang ngày tiếp theo 00:00
             List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonResponse(start, end);
