@@ -310,9 +310,12 @@ public class VeService {
     }
     
     private boolean isPromotionValid(KhuyenMai khuyenMai) {
-        LocalDate now = LocalDate.now();
-        return khuyenMai.getNgayBatDau().isBefore(now) && 
-               khuyenMai.getNgayKetThuc().isAfter(now);
+        LocalDate today = LocalDate.now();
+       
+        return khuyenMai.isTrangThai() &&
+               (khuyenMai.getNgayBatDau().compareTo(today) <= 0) &&
+               (khuyenMai.getNgayKetThuc().compareTo(today) >= 0) &&
+               (khuyenMai.getSoLuong() > 0);
     }
     
     public Ve getVeById(String maVe) {

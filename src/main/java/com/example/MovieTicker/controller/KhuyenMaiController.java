@@ -247,7 +247,7 @@ public class KhuyenMaiController {
         } else {
             return ApiResponse.<String>builder()
                 .code(404)
-                .message("Mã khuyến mãi không hợp lệ hoặc đã hết hạn")
+                .message("Mã khuyến mãi không hợp lệ hoặc không trong thời gian sử dụng")
                 .build();
         }
     }

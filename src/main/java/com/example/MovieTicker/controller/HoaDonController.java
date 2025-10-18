@@ -2,7 +2,6 @@ package com.example.MovieTicker.controller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import com.example.MovieTicker.entity.HoaDon;
 import com.example.MovieTicker.entity.Ve;
@@ -25,6 +24,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+
 
 @RestController
 @RequestMapping("/api/payment")
@@ -514,6 +514,65 @@ public class HoaDonController {
                     .message("Đã có lỗi xảy ra")
                     .data(e.getMessage())
                     .build();
+        }
+    }
+
+    @PostMapping("/checkrefund")
+    public ApiResponse<?> checkMomoRefund(@RequestBody PaymentRequest paymentRequest) {
+        try {
+            CreateMomoResponse response = invoiceService.checkmomorefund(paymentRequest);
+            
+            // Phân tích kết quả
+            Map<String, Object> result = new HashMap<>();
+            result.put("orderId", response.getOrderId());
+            result.put("requestId", response.getRequestId());
+            result.put("amount", response.getAmount());
+            result.put("resultCode", response.getResultCode());
+            result.put("message", response.getMessage());
+            
+            // Xác định trạng thái
+            String status;
+            String description;
+            
+            if (response.getResultCode() == 0) {
+                // Kiểm tra xem có transId không để xác định đã xử lý
+                if (response.getTransId() != null) {
+                    status = "COMPLETED";
+                    description = "Giao dịch đã hoàn tiền thành công";
+                } else {
+                    status = "SUCCESS";
+                    description = "Giao dịch hợp lệ";
+                }
+            } else if (response.getResultCode() == 1000) {
+                status = "PROCESSING";
+                description = "Giao dịch đang được xử lý";
+            } else if (response.getResultCode() == 1001) {
+                status = "FAILED";
+                description = "Giao dịch thất bại";
+            } else if (response.getResultCode() == 9000) {
+                status = "NOT_FOUND";
+                description = "Không tìm thấy giao dịch";
+            } else {
+                status = "ERROR";
+                description = "Lỗi: " + response.getMessage();
+            }
+            
+            result.put("status", status);
+            result.put("description", description);
+            result.put("transId", response.getTransId());
+            result.put("transType", response.getTransType());
+            
+            return new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    description,
+                    result
+            );
+        } catch (Exception e) {
+            return new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Lỗi khi kiểm tra trạng thái hoàn tiền: " + e.getMessage(),
+                    null
+            );
         }
     }
 

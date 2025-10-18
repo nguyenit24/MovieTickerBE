@@ -3,12 +3,14 @@ package com.example.MovieTicker.service;
 import com.example.MovieTicker.entity.TaiKhoan;
 import com.example.MovieTicker.entity.User;
 import com.example.MovieTicker.repository.TaiKhoanRepository;
+import com.example.MovieTicker.repository.UserRepository;
 import com.example.MovieTicker.request.UserRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -16,12 +18,19 @@ public class UserService {
     @Autowired
     TaiKhoanRepository taiKhoanRepository;
 
+    @Autowired
+    UserRepository userRepository;
+
     public void deleteById(String integer) {
         taiKhoanRepository.deleteById(integer);
     }
 
     public Page<TaiKhoan> findAll(Pageable pageable) {
         return taiKhoanRepository.findAll(pageable);
+    }
+
+    public List<User> findAll() {
+        return userRepository.findAll();
     }
 
     public long count() {
