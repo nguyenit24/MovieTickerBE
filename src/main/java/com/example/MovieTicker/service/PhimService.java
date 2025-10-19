@@ -107,6 +107,8 @@ public class PhimService {
         existingPhim.setTrangThai(request.getTrangThai());
         existingPhim.setListTheLoai(theLoaiPhimList);
 
+        System.out.println(existingPhim.getTenPhim());
+
         return phimRepository.save(existingPhim);
     }
 

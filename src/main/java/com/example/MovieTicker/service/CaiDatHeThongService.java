@@ -52,4 +52,16 @@ public class CaiDatHeThongService {
         heThong.setTenCauHinh(request.getTenCauHinh());
         return settingRepository.save(heThong);
     }
+
+    public List<CauHinhHeThong> findPhimByLoai(String loai) {
+        return settingRepository.findPhimByLoai(loai);
+    }
+
+    public List<CauHinhHeThong> findKhuyenMaiByLoai() {
+        return settingRepository.findKhuyenMaiByLoai();
+    }
+
+    public CauHinhHeThong findById(String id) {
+        return settingRepository.findById(id).get();
+    }
 }

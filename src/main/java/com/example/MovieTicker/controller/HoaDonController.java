@@ -156,24 +156,24 @@ public class HoaDonController {
             JsonObject response = JsonParser.parseString(paymentUrl).getAsJsonObject();
             String responseCode = response.get("vnp_ResponseCode").getAsString();
             String message = response.get("vnp_Message").getAsString();
-            
+
             if ("00".equals(responseCode)) {
                 // Hoàn tiền thành công - cập nhật trạng thái hóa đơn và vé
                 String transactionId = "VNPAY_REFUND_" + System.currentTimeMillis();
                 invoiceService.processRefund(paymentRequest.getOrderId(), transactionId);
-                
+
                 // Tạo redirect URL về FE
                 String redirectUrl = String.format(
-                    "%s/refund/result?orderId=%s&status=SUCCESS&message=%s",
-                    frontendBaseUrl, 
-                    paymentRequest.getOrderId(),
-                    URLEncoder.encode("Hoàn tiền thành công", StandardCharsets.UTF_8)
+                        "%s/refund/result?orderId=%s&status=SUCCESS&message=%s",
+                        frontendBaseUrl,
+                        paymentRequest.getOrderId(),
+                        URLEncoder.encode("Hoàn tiền thành công", StandardCharsets.UTF_8)
                 );
-                
+
                 Map<String, Object> data = new HashMap<>();
                 data.put("redirectUrl", redirectUrl);
                 data.put("message", message);
-                
+
                 return new ApiResponse<>(
                         HttpStatus.OK.value(),
                         "Hoàn tiền thành công",

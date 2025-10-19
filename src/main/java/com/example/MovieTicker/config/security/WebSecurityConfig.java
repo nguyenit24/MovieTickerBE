@@ -42,6 +42,8 @@ public class WebSecurityConfig {
             "/api/danhgiaphim/**",
             "/api/loaighe/**",
             "/api/auth/google",
+            "/api/setting/phim",
+            "/api/setting/khuyenmai"
     };
 
     @Autowired
@@ -52,7 +54,7 @@ public class WebSecurityConfig {
         httpSecurity
                 .authorizeHttpRequests(request -> request
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/phim/**", "/api/theloai/**","/api/loaighe/**").permitAll() // Cho phép xem phim, thể loại
+                        .requestMatchers(HttpMethod.GET, "/api/phim/**", "/api/theloai/**","/api/loaighe/**", "api/setting/**").permitAll() // Cho phép xem phim, thể loại
                         .anyRequest().authenticated()
                 )
                 .csrf(csrf -> csrf.disable());

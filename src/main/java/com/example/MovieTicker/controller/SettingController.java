@@ -1,5 +1,6 @@
 package com.example.MovieTicker.controller;
 
+import com.beust.ah.A;
 import com.example.MovieTicker.entity.CauHinhHeThong;
 import com.example.MovieTicker.entity.PhongChieu;
 import com.example.MovieTicker.request.PhongChieuRequest;
@@ -84,6 +85,60 @@ public class SettingController {
         } catch (Exception e) {
             return ApiResponse.<String>builder()
                     .code(HttpStatus.CREATED.value())
+                    .message("Đã xảy ra lỗi")
+                    .data(e.getMessage())
+                    .build();
+        }
+    }
+
+    @GetMapping("/phim")
+    public ApiResponse<?> getPhimSlider() {
+        try {
+            List<CauHinhHeThong> phim = caiDatHeThongService.findPhimByLoai("Phim");
+            return ApiResponse.<List<CauHinhHeThong>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy danh sách slider phim thành công")
+                    .data(phim)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
+                    .message("Đã xảy ra lỗi")
+                    .data(e.getMessage())
+                    .build();
+        }
+    }
+
+    @GetMapping("/khuyenmai")
+    public ApiResponse<?> getKhuyenMaiSlider() {
+        try {
+            List<CauHinhHeThong> phim = caiDatHeThongService.findKhuyenMaiByLoai();
+            return ApiResponse.<List<CauHinhHeThong>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy danh sách slider khuyến mãi thành công")
+                    .data(phim)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
+                    .message("Đã xảy ra lỗi")
+                    .data(e.getMessage())
+                    .build();
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<?> getSettingById(@PathVariable String id) {
+        try {
+            CauHinhHeThong cauHinhHeThong = caiDatHeThongService.findById(id);
+            return ApiResponse.<CauHinhHeThong>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Lấy cài đặt hệ thống thành công")
+                    .data(cauHinhHeThong)
+                    .build();
+        } catch (Exception e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
                     .message("Đã xảy ra lỗi")
                     .data(e.getMessage())
                     .build();
