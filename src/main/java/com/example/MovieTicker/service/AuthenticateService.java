@@ -153,13 +153,22 @@ public class AuthenticateService {
         pendingRepo.delete(registrationData);
     }
 
-    // SỬA LẠI HÀM RESEND OTP
+    @Transactional // Đảm bảo các thay đổi được lưu vào CSDL
     public void resendOtp(ResendOtpRequest request) {
-        // Kiểm tra xem có phiên đăng ký đang chờ không
-        if (!pendingRepo.existsByEmail(request.getEmail())) {
-            throw new AppException(ErrorCode.INVALID_REQUEST); // "Phiên đăng ký không tồn tại hoặc đã hết hạn.");
-        }
-        sendNewOtpForUser(request.getEmail());
+        // 1. Tìm thông tin đăng ký đang chờ qua email
+        PendingRegistration registrationData = pendingRepo.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_REQUEST));
+
+        // 2. Tạo một mã OTP mới
+        String newOtp = new Random().ints(6, 0, 10).mapToObj(String::valueOf).collect(Collectors.joining());
+
+        // 3. Cập nhật mã OTP và thời gian tạo mới cho bản ghi đang chờ
+        registrationData.setOtp(newOtp);
+        registrationData.setOtpGeneratedTime(LocalDateTime.now());
+        pendingRepo.save(registrationData); // Lưu lại thay đổi
+
+        // 4. Gửi email chứa mã OTP mới
+        emailService.sendOtpEmail(request.getEmail(), newOtp);
     }
 
     // XU LY LOGIC Refresh Token
@@ -173,6 +182,9 @@ public class AuthenticateService {
 
         if (!isAuthenticated) {
             throw new AppException(ErrorCode.UNTHENTICATED);
+        }
+        if (!taiKhoan.isTrangThai()) {
+            throw new AppException(ErrorCode.ACCOUNT_LOCKED);
         }
         var accessToken = generateToken(taiKhoan, 3600*1000); // 1 hour
         var refreshToken = generateToken(taiKhoan, 3600*24*7*1000); // 7 days

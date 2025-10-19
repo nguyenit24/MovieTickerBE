@@ -1,5 +1,6 @@
 package com.example.MovieTicker.service;
 
+import com.example.MovieTicker.util.SecurityUtil;
 import com.example.MovieTicker.entity.TaiKhoan;
 import com.example.MovieTicker.entity.User;
 import com.example.MovieTicker.entity.VaiTro;
@@ -8,8 +9,10 @@ import com.example.MovieTicker.exception.ErrorCode;
 import com.example.MovieTicker.repository.TaiKhoanRepository;
 import com.example.MovieTicker.repository.UserRepository;
 import com.example.MovieTicker.repository.VaiTroRepository;
+import com.example.MovieTicker.request.ChangePasswordRequest;
 import com.example.MovieTicker.request.RegistrationRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,6 +51,22 @@ public class TaiKhoanService {
         taiKhoan.setUser(savedUser);
         taiKhoan.setVaiTro(userRole);
 
+        taiKhoanRepository.save(taiKhoan);
+    }
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        String username = SecurityUtil.getCurrentUsername();
+
+        TaiKhoan taiKhoan = taiKhoanRepository.findByTenDangNhap(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Account not found"));
+
+        // Kiểm tra mật khẩu cũ
+        if (!passwordEncoder.matches(request.getOldPassword(), taiKhoan.getMatKhau())) {
+            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
+        }
+
+        // Cập nhật mật khẩu mới đã mã hóa
+        taiKhoan.setMatKhau(passwordEncoder.encode(request.getNewPassword()));
         taiKhoanRepository.save(taiKhoan);
     }
 }

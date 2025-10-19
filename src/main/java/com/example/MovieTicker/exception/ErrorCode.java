@@ -23,7 +23,12 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR(2003, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_TOKEN(1013, "Invalid token", HttpStatus.BAD_REQUEST),
     TOKEN_EXPIRED(1014, "Token has expired", HttpStatus.BAD_REQUEST),
-    VALIDATION_ERROR(4000, "Input validation error", HttpStatus.BAD_REQUEST);
+    VALIDATION_ERROR(4000, "Input validation error", HttpStatus.BAD_REQUEST),
+    INCORRECT_PASSWORD(3000, "Incorrect password", HttpStatus.UNAUTHORIZED),
+    EMAIL_EXISTED(3001, "Email already existed", HttpStatus.BAD_REQUEST),
+    USERNAME_EXISTED(3002, "Username already existed", HttpStatus.BAD_REQUEST),
+    ACCOUNT_LOCKED(403, "Tài khoản của bạn đã bị khoá.", HttpStatus.FORBIDDEN);
+
 
     private int code;
     private String message;

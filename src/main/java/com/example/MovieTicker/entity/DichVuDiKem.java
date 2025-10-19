@@ -29,5 +29,4 @@ public class DichVuDiKem {
     @Column(nullable = false)
     private Boolean trangThai;
 
-
 }

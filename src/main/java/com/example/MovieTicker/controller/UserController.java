@@ -5,8 +5,11 @@ import com.example.MovieTicker.entity.TaiKhoan;
 import com.example.MovieTicker.entity.User;
 import com.example.MovieTicker.request.PhimRequest;
 import com.example.MovieTicker.request.UserRequest;
+import com.example.MovieTicker.request.UserUpdateRequest;
 import com.example.MovieTicker.response.ApiResponse;
+import com.example.MovieTicker.response.UserResponse;
 import com.example.MovieTicker.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,100 +22,94 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 public class UserController {
     @Autowired
     UserService userService;
 
-    @GetMapping("")
-    public ApiResponse<Map<String,Object>> findAll(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "5") int size
+    @GetMapping
+    public ApiResponse<Page<UserResponse>> searchUsers(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "all") String role,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        if (page < 1) page = 1;
-        if (size < 1) size = 5;
         Pageable pageable = PageRequest.of(page, size);
-        Page<TaiKhoan> taiKhoanPage = userService.findAll(pageable);
-        Map<String,Object> response = Map.of(
-                "totalPages",taiKhoanPage.getTotalPages(),
-                "currentTaiKhoan",taiKhoanPage.getContent(),
-                "currentPage",taiKhoanPage.getNumber() + 1
-        );
-        return ApiResponse.<Map<String,Object>>builder()
+        // Chuyển đổi status từ string sang boolean để service xử lý
+        Boolean statusBoolean = status.equals("all") ? null : status.equals("active");
+
+        Page<UserResponse> users = userService.searchUsers(keyword, role, statusBoolean, pageable);
+
+        return ApiResponse.<Page<UserResponse>>builder()
                 .code(HttpStatus.OK.value())
-                .message(("Lấy danh sách tài khoản thành công"))
-                .data(response)
+                .message("Lấy danh sách người dùng thành công.")
+                .data(users)
                 .build();
     }
 
-    @GetMapping("/all")
-    public ApiResponse<?> findAllUsers() {
-        try {
-            return ApiResponse.builder()
-                    .code(HttpStatus.OK.value())
-                    .message("Lấy danh sách user thành công")
-                    .data(userService.findAll())
-                    .build();
-        } catch (Exception e) {
-            return ApiResponse.builder()
-                    .code(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
-        }
+    /**
+     * API tạo một người dùng mới.
+     */
+    @PostMapping
+    public ApiResponse<UserResponse> createUser(@RequestBody @Valid UserRequest request) {
+        UserResponse createdUser = userService.createUser(request);
+        return ApiResponse.<UserResponse>builder()
+                .code(HttpStatus.CREATED.value())
+                .message("Tạo người dùng thành công.")
+                .data(createdUser)
+                .build();
     }
 
-    @PostMapping("")
-    public ApiResponse<?> create(@RequestBody TaiKhoan request) {
-        try {
-            TaiKhoan taiKhoan = userService.save(request);
-            return ApiResponse.builder()
-                    .code(HttpStatus.CREATED.value())
-                    .message("Tạo user thành công")
-                    .data(taiKhoan)
-                    .build();
-        } catch (Exception e) {
-            return ApiResponse.builder()
-                    .code(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
-        }
-    }
-
+    /**
+     * API cập nhật thông tin của một người dùng dựa trên ID.
+     */
     @PutMapping("/{id}")
-    public ApiResponse<?> update(@PathVariable String id, @RequestBody TaiKhoan request) {
-        try {
-            Optional<TaiKhoan> taiKhoan = userService.findById(id);
-            request.setTenDangNhap(taiKhoan.get().getTenDangNhap());
-            userService.save(request);
-            return ApiResponse.builder()
-                    .code(HttpStatus.CREATED.value())
-                    .message("Cập nhật user thành công")
-                    .data(taiKhoan)
-                    .build();
-        }  catch (Exception e) {
-            return ApiResponse.builder()
-                    .code(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
-        }
+    public ApiResponse<UserResponse> updateUser(@PathVariable Long id, @RequestBody @Valid UserUpdateRequest request) {
+        UserResponse updatedUser = userService.updateUser(id, request);
+        return ApiResponse.<UserResponse>builder()
+                .code(HttpStatus.OK.value())
+                .message("Cập nhật người dùng thành công.")
+                .data(updatedUser)
+                .build();
     }
 
+    /**
+     * API xóa một người dùng dựa trên ID.
+     */
     @DeleteMapping("/{id}")
-    public ApiResponse<?> delete(@PathVariable String id) {
-        try {
-            Optional<TaiKhoan> taiKhoan = userService.findById(id);
-            userService.deleteById(id);
-            return ApiResponse.builder()
-                    .code(HttpStatus.OK.value())
-                    .message("Xóa user thành công")
-                    .data(taiKhoan)
-                    .build();
-        }
-        catch (Exception e) {
-            return ApiResponse.builder()
-                    .code(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .build();
-        }
+    public ApiResponse<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ApiResponse.<Void>builder()
+                .code(HttpStatus.OK.value())
+                .message("Xóa người dùng thành công.")
+                .build();
+    }
+
+    /**
+     * API cập nhật trạng thái (khóa/mở khóa) của một tài khoản.
+     */
+    @PutMapping("/{username}/status")
+    public ApiResponse<Void> updateUserStatus(@PathVariable String username, @RequestParam boolean status) {
+        userService.updateUserStatus(username, status);
+        return ApiResponse.<Void>builder()
+                .code(HttpStatus.OK.value())
+                .message("Cập nhật trạng thái thành công.")
+                .build();
+    }
+
+    // Helper method để convert TaiKhoan sang UserResponse
+    private UserResponse convertToUserResponse(TaiKhoan taiKhoan) {
+        User user = taiKhoan.getUser();
+        return UserResponse.builder()
+                .maUser(user.getMaUser())
+                .hoTen(user.getHoTen())
+                .email(user.getEmail())
+                .sdt(user.getSdt())
+                .ngaySinh(user.getNgaySinh())
+                .tenDangNhap(taiKhoan.getTenDangNhap())
+                .tenVaiTro(taiKhoan.getVaiTro().getTenVaiTro())
+                .trangThai(taiKhoan.isTrangThai())
+                .build();
     }
 }

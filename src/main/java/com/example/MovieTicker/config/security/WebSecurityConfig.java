@@ -42,6 +42,7 @@ public class WebSecurityConfig {
             "/api/danhgiaphim/**",
             "/api/loaighe/**",
             "/api/auth/google",
+            "/api/profile/**",
     };
 
     @Autowired
