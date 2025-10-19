@@ -40,14 +40,14 @@ public class GheService {
 //    public void seedGhe() {
 //        int soHang = 10;
 //        int soCot = 10;
-//
+
 //        List<LoaiGhe> loaiGheList = loaiGheRepository.findAll();
 //        for (int i = 0; i < soHang; i++) {
 //            char hang = (char) ('A' + i);
 //            for (int j = 1; j <= soCot; j++) {
 //                String tenGhe = String.format("%c%02d", hang, j);
 //                LoaiGhe loaiGhe;
-//                Optional<PhongChieu> phongChieu = phongChieuRepository.findById("P2");
+//                Optional<PhongChieu> phongChieu = phongChieuRepository.findById("13cf121b-7d10-459e-8e3c-19971969a677");
 //                if (phongChieu.isEmpty()) {
 //                    throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
 //                }
@@ -72,23 +72,23 @@ public class GheService {
 //            }
 //        }
 //    }
-//
+
 //    @PostConstruct
 //    public void seedGhePhongVip() {
-//        Optional<PhongChieu> phongChieuOpt = phongChieuRepository.findById("P3");
+//        Optional<PhongChieu> phongChieuOpt = phongChieuRepository.findById("7aeb44eb-5345-4a5a-b466-624f35938f97");
 //        if (phongChieuOpt.isEmpty()) {
 //            throw new RuntimeException("Không tìm thấy phòng chiếu P3 (phòng VIP)");
 //        }
-//
+
 //        PhongChieu phongChieu = phongChieuOpt.get();
-//
+
 //        LoaiGhe loaiVip = loaiGheRepository.findByTenLoaiGhe("VIP");
 //        LoaiGhe loaiCouple = loaiGheRepository.findByTenLoaiGhe("Couple");
-//
+
 //        if (loaiVip == null || loaiCouple == null) {
 //            throw new RuntimeException("Chưa có loại ghế VIP hoặc Couple trong DB!");
 //        }
-//
+
 //        // 🪑 Hàng A–C: ghế VIP, 8 cột mỗi hàng
 //        for (int i = 0; i < 3; i++) {
 //            char hang = (char) ('A' + i);
@@ -104,7 +104,7 @@ public class GheService {
 //                }
 //            }
 //        }
-//
+
 //        // 💑 Hàng D–E: ghế Couple, 4 cột mỗi hàng
 //        for (int i = 3; i < 5; i++) {
 //            char hang = (char) ('A' + i);
@@ -120,7 +120,7 @@ public class GheService {
 //                }
 //            }
 //        }
-//
+
 //        System.out.println("✅ Đã seed ghế cho phòng VIP " + phongChieu.getTenPhong());
 //    }
 
