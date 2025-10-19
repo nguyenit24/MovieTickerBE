@@ -2,11 +2,7 @@ package com.example.MovieTicker.entity;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -18,7 +14,7 @@ import lombok.*;
 @ToString(exclude = "user")
 public class TaiKhoan {
     @Id
-    private String TenDangNhap;
+    private String tenDangNhap;
     
     private String MatKhau;
 
@@ -31,5 +27,10 @@ public class TaiKhoan {
     @JoinColumn(name = "vaiTroID", nullable = false)
     @JsonIgnore
     private VaiTro vaiTro;
-
+    @Column(columnDefinition = "TINYINT(1)")
+    private boolean trangThai; // true = active, false = inactive/locked
+    @PrePersist
+    protected void onCreate() {
+        this.trangThai = true; // Mặc định là active khi tạo mới
+    }
 }

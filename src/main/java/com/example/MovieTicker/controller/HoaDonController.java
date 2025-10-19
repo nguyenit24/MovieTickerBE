@@ -2,6 +2,7 @@ package com.example.MovieTicker.controller;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import com.example.MovieTicker.entity.HoaDon;
 import com.example.MovieTicker.entity.Ve;
@@ -204,7 +205,7 @@ public class HoaDonController {
                     "Lỗi khi xử lý hoàn tiền: " + e.getMessage(),
                     null
             );
-        }
+        };
     }
 
     @PostMapping("/momo/create")
@@ -281,7 +282,7 @@ public class HoaDonController {
                 );
             }
         }
-        
+
         try {
             if (!response.isCommitted()) {
                 response.sendRedirect(redirectUrl);
@@ -320,41 +321,41 @@ public class HoaDonController {
         try {
             CreateMomoResponse response = invoiceService.refundMomo(paymentRequest);
             System.out.println(response);
-            
+
             // ResultCode 0: Thành công
             // ResultCode 1000: Giao dịch đang được xử lý (timeout)
             if (response.getResultCode() == 0 || response.getResultCode() == 1000) {
                 String transactionId = paymentRequest.getTransId() != null ? paymentRequest.getTransId() : "MOMO_REFUND_" + System.currentTimeMillis();
-                
+
                 // Xử lý hoàn tiền và gửi email
                 invoiceService.processRefund(paymentRequest.getOrderId(), transactionId);
-                
-                String statusMessage = response.getResultCode() == 0 ? 
-                    "Hoàn tiền thành công" : 
+
+                String statusMessage = response.getResultCode() == 0 ?
+                    "Hoàn tiền thành công" :
                     "Yêu cầu hoàn tiền đang được xử lý";
-                
+
                 // Tạo redirect URL về FE
                 String redirectUrl = String.format(
                     "%s/refund/result?orderId=%s&status=SUCCESS&transactionId=%s&message=%s",
-                    frontendBaseUrl, 
+                    frontendBaseUrl,
                     paymentRequest.getOrderId(),
                     transactionId,
                     URLEncoder.encode(statusMessage, StandardCharsets.UTF_8)
                 );
-                
+
                 Map<String, Object> data = new HashMap<>();
                 data.put("redirectUrl", redirectUrl);
                 data.put("message", response.getMessage());
                 data.put("transactionId", transactionId);
                 data.put("resultCode", response.getResultCode());
-                
+
                 return new ApiResponse<>(
                         HttpStatus.OK.value(),
                         statusMessage,
                         data
                 );
             }
-            
+
             return new ApiResponse<>(
                     HttpStatus.BAD_REQUEST.value(),
                     "Hoàn tiền thất bại",
@@ -419,7 +420,9 @@ public class HoaDonController {
         }
     }
     
-  
+    /**
+     * API hủy hóa đơn manual khi user out ra không thanh toán
+     */
     @PostMapping("/cancel/{maHD}")
     public ApiResponse<?> cancelInvoice(@PathVariable String maHD) {
         try {
@@ -522,7 +525,7 @@ public class HoaDonController {
     public ApiResponse<?> checkMomoRefund(@RequestBody PaymentRequest paymentRequest) {
         try {
             CreateMomoResponse response = invoiceService.checkmomorefund(paymentRequest);
-            
+
             // Phân tích kết quả
             Map<String, Object> result = new HashMap<>();
             result.put("orderId", response.getOrderId());
@@ -530,11 +533,11 @@ public class HoaDonController {
             result.put("amount", response.getAmount());
             result.put("resultCode", response.getResultCode());
             result.put("message", response.getMessage());
-            
+
             // Xác định trạng thái
             String status;
             String description;
-            
+
             if (response.getResultCode() == 0) {
                 // Kiểm tra xem có transId không để xác định đã xử lý
                 if (response.getTransId() != null) {
@@ -557,12 +560,12 @@ public class HoaDonController {
                 status = "ERROR";
                 description = "Lỗi: " + response.getMessage();
             }
-            
+
             result.put("status", status);
             result.put("description", description);
             result.put("transId", response.getTransId());
             result.put("transType", response.getTransType());
-            
+
             return new ApiResponse<>(
                     HttpStatus.OK.value(),
                     description,
