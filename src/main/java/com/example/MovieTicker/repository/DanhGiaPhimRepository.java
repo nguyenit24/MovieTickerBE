@@ -18,4 +18,6 @@ public interface DanhGiaPhimRepository extends JpaRepository<DanhGiaPhim, String
     @Query("SELECT d FROM DanhGiaPhim d WHERE " +
            "(:tenPhim IS NULL OR :tenPhim = '' OR LOWER(d.phim.tenPhim) LIKE LOWER(CONCAT('%', :tenPhim, '%')))")
     Page<DanhGiaPhim> findByPhimTenPhimContaining(@Param("tenPhim") String tenPhim, Pageable pageable);
+    
+    List<DanhGiaPhim> findByUserMaUser(Long maUser);
 }
