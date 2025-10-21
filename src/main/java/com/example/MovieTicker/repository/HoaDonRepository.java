@@ -60,7 +60,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     JOIN v.suatChieu s
     JOIN s.phim p
     WHERE h.trangThai = 'PAID' AND s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
-   GROUP BY p.tenPhim, s.thoiGianBatDau
+   GROUP BY p.tenPhim
    ORDER BY SUM(h.tongTien), COUNT(s) DESC
     """)
     List<PhimStatisticResponse> findAllPhimStatistic(LocalDateTime NgayBD, LocalDateTime NgayKT);

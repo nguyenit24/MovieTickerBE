@@ -5,7 +5,9 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-   
+import org.springframework.web.multipart.MultipartFile;
+
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import com.example.MovieTicker.entity.Phim;
 import com.example.MovieTicker.request.PhimRequest;
 import com.example.MovieTicker.response.ApiResponse;
 import com.example.MovieTicker.service.PhimService;
+import org.springframework.web.bind.annotation.GetMapping;
 
 
 @RestController
@@ -26,22 +29,23 @@ public class PhimController {
 
     @GetMapping("/pageable")
     public ApiResponse<Map<String, Object>> getPhimPageable(@RequestParam(defaultValue = "1") int page,
-                               @RequestParam(defaultValue = "8") int size) {
+                                                            @RequestParam(defaultValue = "8") int size) {
         if (page < 1) page = 1;
         if (size < 1) size = 5;
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Phim> phimPage = phimService.getPhimPage(pageable);
         Map<String, Object> response = Map.of(
-            "totalPages", phimPage.getTotalPages(),
-            "currentMovies", phimPage.getContent(),
-            "currentPage", phimPage.getNumber() + 1
+                "totalPages", phimPage.getTotalPages(),
+                "currentMovies", phimPage.getContent(),
+                "currentPage", phimPage.getNumber() + 1
         );
         return ApiResponse.<Map<String, Object>>builder()
-            .code(HttpStatus.OK.value())
-            .message("Lấy danh sách phim phân trang thành công")
-            .data(response)
-            .build();
+                .code(HttpStatus.OK.value())
+                .message("Lấy danh sách phim phân trang thành công")
+                .data(response)
+                .build();
     }
+
     @PostMapping
     public ApiResponse<Phim> createPhim(@RequestBody PhimRequest request) {
         try {
@@ -122,7 +126,7 @@ public class PhimController {
 
     @GetMapping("/search")
     public ApiResponse<Map<String, Object>> searchPhim(@RequestParam String keyword, @RequestParam(defaultValue = "1") int page,
-                                              @RequestParam(defaultValue = "8") int size) {
+                                                       @RequestParam(defaultValue = "8") int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Phim> phimPage = phimService.searchPhimByTen(keyword, pageable);
         Map<String, Object> response = Map.of(
@@ -138,7 +142,6 @@ public class PhimController {
     }
 
 
-    
     @GetMapping("/ten/{tenPhim}")
     public ApiResponse<Phim> getPhimByTen(@PathVariable String tenPhim) {
         try {
@@ -157,7 +160,6 @@ public class PhimController {
     }
 
 
-
     @GetMapping("/exists/{tenPhim}")
     public ApiResponse<Boolean> checkPhimExists(@PathVariable String tenPhim) {
         boolean exists = phimService.existsByTenPhim(tenPhim);
@@ -166,5 +168,43 @@ public class PhimController {
                 .message("Kiểm tra phim tồn tại thành công")
                 .data(exists)
                 .build();
+    }
+
+
+    @GetMapping("/dangchieu")
+    public ApiResponse<List<Phim>> getPhimDangChieu() {
+        List<Phim> list = phimService.getPhimByTrangThai("Đang chiếu");
+        return ApiResponse.<List<Phim>>builder()
+                .code(HttpStatus.OK.value())
+                .message("Lấy phim đang chiếu thành công")
+                .data(list)
+                .build();
+    }
+
+    @GetMapping("/sapchieu")
+    public ApiResponse<List<Phim>> getPhimSapChieu() {
+        List<Phim> list = phimService.getPhimByTrangThai("Sắp chiếu");
+        return ApiResponse.<List<Phim>>builder()
+                .code(HttpStatus.OK.value())
+                .message("Lấy phim sắp chiếu thành công")
+                .data(list)
+                .build();
+    }
+
+    @PostMapping("/upload-excel")
+    public ApiResponse<String> uploadPhimExcel(@RequestParam("file") MultipartFile file) {
+        try {
+            phimService.uploadPhimFromExcel(file);
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Upload file Excel thành công và dữ liệu đã được lưu vào cơ sở dữ liệu")
+                    .data("File uploaded and data saved successfully")
+                    .build();
+        } catch (RuntimeException e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.BAD_REQUEST.value())
+                    .message(e.getMessage())
+                    .build();
+        }
     }
 }

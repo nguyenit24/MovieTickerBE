@@ -3,6 +3,8 @@ package com.example.MovieTicker.service;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.MovieTicker.entity.CauHinhHeThong;
+import com.example.MovieTicker.repository.SettingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +17,7 @@ import com.example.MovieTicker.repository.DichVuDiKemRepository;
 public class DichVuDiKemService {
     @Autowired
     private DichVuDiKemRepository repository;
+    private SettingRepository settingRepository;
 
     public List<DichVuDiKem> getAll() {
         return repository.findAll();
@@ -35,6 +38,14 @@ public class DichVuDiKemService {
 
     public void delete(Long id) {
         repository.deleteById(id);
+        List<CauHinhHeThong> sliders = settingRepository.findByLoai("Dịch vụ");
+        for (CauHinhHeThong slider : sliders) {
+            String[] parts = slider.getTenCauHinh().split("-");
+            String ma = parts[parts.length - 1].trim();
+            if (ma.equals(String.valueOf(id))) {
+                settingRepository.deleteById(slider.getMaCauHinh());
+            }
+        }
     }
 
     public Page<DichVuDiKem> getDichVuDiKemPageable(Pageable pageable) {

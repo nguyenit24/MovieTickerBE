@@ -33,5 +33,14 @@ public interface PhimRepository extends JpaRepository<Phim, String> {
 
     Page<Phim> findAll(Pageable pageable);
     
+    List<Phim> findByTrangThai(String trangThai);
+
+    // Phim đang chiếu
+    @Query("SELECT p FROM Phim p WHERE LOWER(p.trangThai) LIKE LOWER('%đang chiếu%') OR LOWER(p.trangThai) LIKE LOWER('%dang chieu%')")
+    List<Phim> findPhimDangChieu();
+
+    // Phim sắp chiếu
+    @Query("SELECT p FROM Phim p WHERE LOWER(p.trangThai) LIKE LOWER('%sắp chiếu%') OR LOWER(p.trangThai) LIKE LOWER('%sap chieu%')")
+    List<Phim> findPhimSapChieu();
 
 }

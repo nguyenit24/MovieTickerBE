@@ -72,6 +72,9 @@ public class AuthenticateService {
         if (taiKhoanRepository.existsById(request.getTenDangNhap())) {
             throw new AppException(ErrorCode.USER_EXISTS);
         }
+        if (request.getMatKhau().length() < 6) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
 
         pendingRepo.findByEmail(request.getEmail()).ifPresent(pendingRepo::delete);
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
@@ -361,6 +364,10 @@ public class AuthenticateService {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new JacksonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
+
+            System.out.println("Google Client ID: " + googleClientId);
+            System.out.println("Token ID: " + tokenId);
+            System.out.println("Verifying token..." + verifier.toString());
 
             GoogleIdToken idToken = verifier.verify(tokenId);
             if (idToken == null) {

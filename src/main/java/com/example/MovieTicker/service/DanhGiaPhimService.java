@@ -1,5 +1,6 @@
 package com.example.MovieTicker.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -129,6 +130,25 @@ public class DanhGiaPhimService {
         danhGiaPhimRepository.delete(danhGia);
     }
 
+    public List<DanhGiaPhimResponse> getDanhGiaByMyUser() {
+        User user = null;
+        String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
+        if (username != null && !"anonymousUser".equals(username)) {
+            TaiKhoan taiKhoan = taiKhoanRepository.findById(username).orElse(null);
+            if (taiKhoan != null) {
+                user = taiKhoan.getUser();
+            }
+        }
+        if (user != null) {
+            List<DanhGiaPhim> danhGiaPhims = danhGiaPhimRepository.findByUserMaUser(user.getMaUser());
+            return danhGiaPhims.stream()
+                    .map(this::convertToResponse)
+                    .collect(Collectors.toList());
+        }
+
+        return Collections.emptyList();
+    }
+
    
     public Page<DanhGiaPhimResponse> getDanhGiaPhimPaginated(String tenPhim, int page, int size, String sortBy, String sortDirection) {
         Sort sort = sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
@@ -153,5 +173,16 @@ public class DanhGiaPhimService {
                 .tenPhim(danhGia.getPhim().getTenPhim())
                 .createdAt(danhGia.getCreatedAt())
                 .build();
+    }
+
+    public Double getAvgRatingByPhimMaPhim(String maPhim) {
+        List<DanhGiaPhim> danhGiaPhims = danhGiaPhimRepository.findByPhimMaPhim(maPhim);
+        if (danhGiaPhims.isEmpty()) {
+            throw new RuntimeException("Không có đánh giá nào cho phim với mã: " + maPhim);
+        }
+        return danhGiaPhims.stream()
+                .mapToDouble(DanhGiaPhim::getRating)
+                .average()
+                .orElse(0.0);
     }
 }

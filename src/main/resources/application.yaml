@@ -4,7 +4,7 @@
     datasource:
       url: jdbc:mysql://localhost:3306/movie
       username: root
-      password: root 
+      password: root
     jpa:
       hibernate:
         ddl-auto: update
@@ -52,6 +52,8 @@
     Key: "u7S0lNZzkdu0yiM04aw53nlCjFjENGUfQEPXuUQwBnTirTkZaM6CQqi41vU5hL3V"
   frontend:
     base-url: http://localhost:5173
+  backend:
+    base-url: http://localhost:8080
 
   qr:
     code:

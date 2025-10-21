@@ -1,7 +1,9 @@
 package com.example.MovieTicker.service;
 
+import com.example.MovieTicker.entity.CauHinhHeThong;
 import com.example.MovieTicker.entity.KhuyenMai;
 import com.example.MovieTicker.repository.KhuyenMaiRepository;
+import com.example.MovieTicker.repository.SettingRepository;
 import com.example.MovieTicker.request.KhuyenMaiRequest;
 import com.example.MovieTicker.response.HoaDonSatisticResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +21,9 @@ public class KhuyenMaiService {
     
     @Autowired
     private KhuyenMaiRepository khuyenMaiRepository;
-    
+    @Autowired
+    private SettingRepository settingRepository;
+
     public List<KhuyenMai> getAllKhuyenMai() {
         return khuyenMaiRepository.findAll();
     }
@@ -84,6 +88,15 @@ public class KhuyenMaiService {
     
     public boolean deleteKhuyenMai(String id) {
         if (khuyenMaiRepository.existsById(id)) {
+            List<CauHinhHeThong> sliders = settingRepository.findByLoai("Khuyến mãi");
+            for (CauHinhHeThong slider : sliders) {
+                String tenCauHinh = slider.getTenCauHinh();
+                String[] parts = tenCauHinh.split("-");
+                String ma = parts[parts.length - 1].trim();
+                if (ma.equals(id)) {
+                    settingRepository.deleteById(slider.getMaCauHinh());
+                }
+            }
             khuyenMaiRepository.deleteById(id);
             return true;
         }
@@ -101,7 +114,6 @@ public class KhuyenMaiService {
     public KhuyenMai getKhuyenMaiByCodeValidate(String code) {
         Optional<KhuyenMai> khuyenMai = getKhuyenMaiByCode(code);
         String username = com.example.MovieTicker.util.SecurityUtil.getCurrentUsername();
-        System.out.println("User applying promotion: " + username);
         if(username == null || "anonymousUser".equals(username)) {
             throw new RuntimeException("Người dùng chưa đăng nhập để sử dụng khuyến mãi");
         }
