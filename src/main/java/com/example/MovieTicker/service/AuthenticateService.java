@@ -362,6 +362,10 @@ public class AuthenticateService {
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
 
+            System.out.println("Google Client ID: " + googleClientId);
+            System.out.println("Token ID: " + tokenId);
+            System.out.println("Verifying token..." + verifier.toString());
+
             GoogleIdToken idToken = verifier.verify(tokenId);
             if (idToken == null) {
                 throw new AppException(ErrorCode.UNTHENTICATED);

@@ -129,5 +129,24 @@ public class DanhGiaPhimController {
                     .build();
         }
     }
+    @GetMapping("/myreviews")
+    public ApiResponse<?> getDanhGiaByMyUser() {
+        return ApiResponse.<Object>builder()
+                .code(200)
+                .message("Lấy danh sách đánh giá của người dùng thành công")
+                .data(danhGiaPhimService.getDanhGiaByMyUser())
+                .build();
+    }
+
+    @GetMapping("/phimavg/{maPhim}")
+    public ApiResponse<?> getAvgPhim(@PathVariable String maPhim) {
+        Double avgRating = danhGiaPhimService.getAvgRatingByPhimMaPhim(maPhim);
+        return ApiResponse.<Object>builder()
+                .code(200)
+                .message("Lấy điểm đánh giá trung bình của phim thành công")
+                .data(avgRating)
+                .build();
+    }
+    
 
 }

@@ -14,24 +14,36 @@ public class WebConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Chỉ định rõ nguồn gốc của frontend được phép truy cập
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        // Cho phép TẤT CẢ các nguồn gốc (website) truy cập
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        
+        // Hoặc dùng cách này (nhưng không nên dùng cùng lúc với setAllowCredentials(true))
+        // configuration.setAllowedOrigins(List.of("*"));
 
-        // Các phương thức được phép (GET, POST, etc.)
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        // Các phương thức HTTP được phép
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
 
-        // Các header được phép gửi lên
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        // Cho phép TẤT CẢ headers
+        configuration.setAllowedHeaders(List.of("*"));
 
         // Cho phép gửi cookie và các thông tin xác thực
         configuration.setAllowCredentials(true);
 
-        // Thời gian pre-flight request được cache lại (giây)
+        // Các header có thể expose cho client
+        configuration.setExposedHeaders(List.of(
+            "Authorization", 
+            "Content-Type", 
+            "X-Total-Count",
+            "X-Request-Id"
+        ));
+
+        // Thời gian pre-flight request được cache lại (1 giờ)
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Áp dụng cấu hình này cho tất cả các API bắt đầu bằng "/api/"
-        source.registerCorsConfiguration("/api/**", configuration);
+        
+        // Áp dụng cho TẤT CẢ các endpoint
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
