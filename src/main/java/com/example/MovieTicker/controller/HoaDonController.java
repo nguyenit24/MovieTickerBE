@@ -527,7 +527,7 @@ public class HoaDonController {
             System.out.println("NgayBD: " + NgayBD + ", NgayKT: " + NgayKT);
             LocalDateTime start = NgayBD.atStartOfDay(); // 00:00
             LocalDateTime end = NgayKT.plusDays(1).atStartOfDay(); // sang ngày tiếp theo 00:00
-            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonResponse(start, end);
+            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonStatusResponse(start, end);
             return ApiResponse.<List<HoaDonSatisticResponse>>builder()
                     .code(HttpStatus.OK.value())
                     .message("Thành công")
