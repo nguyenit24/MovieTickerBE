@@ -42,29 +42,29 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     JOIN v.suatChieu s
     JOIN s.phim p
     JOIN s.phongChieu pc
-    WHERE h.trangThai = 'PAID' AND s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
+    WHERE h.trangThai = 'PAID' AND h.ngayLap BETWEEN :NgayBD AND :NgayKT
     GROUP BY h.maHD, h.ngayLap, h.trangThai, h.tongTien, s.thoiGianBatDau, p.tenPhim, pc.tenPhong
 """)
     List<HoaDonSatisticResponse> findAllHoaDonPaid(LocalDateTime NgayBD, LocalDateTime NgayKT);
 
     @Query("""
-    SELECT new com.example.MovieTicker.response.HoaDonSatisticResponse(
-        h.maHD,
-        h.ngayLap,
-        h.trangThai,
-        h.tongTien,
-        COUNT(v),
-        s.thoiGianBatDau,
-        p.tenPhim,
-        pc.tenPhong
-    )
-    FROM HoaDon h
-    JOIN h.ves v
-    JOIN v.suatChieu s
-    JOIN s.phim p
-    JOIN s.phongChieu pc
-    WHERE s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
-    GROUP BY h.maHD, h.ngayLap, h.trangThai, h.tongTien, s.thoiGianBatDau, p.tenPhim, pc.tenPhong
+SELECT new com.example.MovieTicker.response.HoaDonSatisticResponse(
+    h.maHD,
+    h.ngayLap,
+    h.trangThai,
+    h.tongTien,
+    COUNT(v),
+    s.thoiGianBatDau,
+    p.tenPhim,
+    pc.tenPhong
+)
+FROM HoaDon h
+JOIN h.ves v
+JOIN v.suatChieu s
+JOIN s.phim p
+JOIN s.phongChieu pc
+WHERE h.ngayLap BETWEEN :NgayBD AND :NgayKT
+GROUP BY h.maHD, h.ngayLap, h.trangThai, h.tongTien, s.thoiGianBatDau, p.tenPhim, pc.tenPhong
 """)
     List<HoaDonSatisticResponse> findAllHoaDonStatus(LocalDateTime NgayBD, LocalDateTime NgayKT);
 
@@ -80,7 +80,7 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     JOIN h.ves v
     JOIN v.suatChieu s
     JOIN s.phim p
-    WHERE h.trangThai = 'PAID' AND s.thoiGianBatDau BETWEEN :NgayBD AND :NgayKT
+    WHERE h.trangThai = 'PAID' AND h.ngayLap BETWEEN :NgayBD AND :NgayKT
    GROUP BY p.tenPhim
    ORDER BY SUM(h.tongTien), COUNT(s) DESC
     """)
