@@ -4,8 +4,13 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -59,5 +64,43 @@ public class GlobalExceptionHandler {
                 .build();
         // Trả về response với HTTP status 400 Bad Request
         return ResponseEntity.badRequest().body(apiResponse);
+    }
+    // @Valid/@ModelAttribute binding errors
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleBindException(BindException ex) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
+            errors.put(fe.getField(), fe.getDefaultMessage());
+        }
+        ApiResponse<Map<String, String>> body = ApiResponse.<Map<String, String>>builder()
+                .code(HttpStatus.BAD_REQUEST.value())
+                .message("Validation failed")
+                .data(errors)
+                .build();
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    // Method parameter validation (e.g., @RequestParam/@PathVariable with @Validated)
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> errors = new HashMap<>();
+        for (ConstraintViolation<?> v : ex.getConstraintViolations()) {
+            errors.put(v.getPropertyPath().toString(), v.getMessage());
+        }
+        ApiResponse<Map<String, String>> body = ApiResponse.<Map<String, String>>builder()
+                .code(HttpStatus.BAD_REQUEST.value())
+                .message("Validation failed")
+                .data(errors)
+                .build();
+        return ResponseEntity.badRequest().body(body);
+    }
+    // Fallback
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<String>> handleUnknown(Exception ex) {
+        ApiResponse<String> body = ApiResponse.<String>builder()
+                .code(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message("Internal server error")
+                .build();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 }

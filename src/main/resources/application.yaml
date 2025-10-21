@@ -4,7 +4,7 @@
     datasource:
       url: jdbc:mysql://localhost:3306/movie
       username: root
-      password: 1234
+      password: root 
     jpa:
       hibernate:
         ddl-auto: update
@@ -17,8 +17,8 @@
         client:
           registration:
             google:
-              client-id: ${GOOGLE_CLIENT_ID}
-              client-secret: ${GOOGLE_CLIENT_SECRET}
+              client-id: 159816536105-4i6udh61vh79dpm6qe10vktpu6jerc15.apps.googleusercontent.com
+              client-secret: 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
               scope:
                 - email
                 - profile

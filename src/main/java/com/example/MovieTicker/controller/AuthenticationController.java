@@ -25,7 +25,7 @@ public class AuthenticationController {
     private final TaiKhoanService taiKhoanService;
 
     @PostMapping("/login")
-    public ApiResponse<AuthenticateResponse> login(@RequestBody AuthenticateRequest request) {
+    public ApiResponse<AuthenticateResponse> login(@RequestBody @Valid AuthenticateRequest request) {
         var result = authenticateService.authenticated(request);
         return ApiResponse.<AuthenticateResponse>builder()
                 .message("Authentication successful")
@@ -51,13 +51,13 @@ public class AuthenticationController {
     }
 
     @PostMapping("/introspect")
-    public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request)
+    public ApiResponse<IntrospectResponse> introspect(@RequestBody @Valid IntrospectRequest request)
             throws ParseException, JOSEException {
         var result = authenticateService.introspect(request);
         return ApiResponse.<IntrospectResponse>builder().data(result).build();
     }
     @PostMapping("/refresh")
-    public ApiResponse<AuthenticateResponse> refreshToken(@RequestBody IntrospectRequest request)
+    public ApiResponse<AuthenticateResponse> refreshToken(@RequestBody @Valid IntrospectRequest request)
             throws ParseException, JOSEException {
         var result = authenticateService.refreshToken(request);
         return ApiResponse.<AuthenticateResponse>builder()
@@ -65,7 +65,7 @@ public class AuthenticationController {
                 .build();
     }
     @PostMapping("/forgot-password")
-    public ApiResponse<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    public ApiResponse<String> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
         authenticateService.forgotPassword(request);
         return ApiResponse.<String>builder()
                 .message("OTP has been sent to your email.")
