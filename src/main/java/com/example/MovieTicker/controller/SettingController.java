@@ -70,8 +70,8 @@ public class SettingController {
         }
     }
 
-    @DeleteMapping("{id}")
-    public ApiResponse<?> deleteCaiDat(@RequestParam String id) {
+    @DeleteMapping("/{id}")
+    public ApiResponse<?> deleteCaiDat(@PathVariable String id) {
         try {
             if (!(id.startsWith("SLIDER_"))) {
                 throw new RuntimeException("Không thể xóa cài đặt hệ thống này");

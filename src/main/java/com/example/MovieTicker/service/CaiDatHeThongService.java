@@ -19,12 +19,11 @@ public class CaiDatHeThongService {
     SettingRepository settingRepository;
 
     public void deleteById(String s) {
-        Optional<CauHinhHeThong> heThong = settingRepository.findById(s);
+        Optional<CauHinhHeThong> heThong = settingRepository.findById(s.trim());
         if (heThong.isPresent()) {
-            settingRepository.deleteById(s);
+            settingRepository.deleteById(s.trim());
         }
         else throw new RuntimeException("Không tìm thấy cấu hình này trong hệ thống");
-
     }
 
     public List<CauHinhHeThong> findAll() {
@@ -54,7 +53,7 @@ public class CaiDatHeThongService {
     }
 
     public List<CauHinhHeThong> findPhimByLoai(String loai) {
-        return settingRepository.findPhimByLoai(loai);
+        return settingRepository.findByLoai(loai);
     }
 
     public List<CauHinhHeThong> findKhuyenMaiByLoai() {

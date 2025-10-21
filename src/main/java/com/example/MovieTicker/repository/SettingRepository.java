@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SettingRepository extends JpaRepository<CauHinhHeThong, String> {
@@ -14,8 +15,10 @@ public interface SettingRepository extends JpaRepository<CauHinhHeThong, String>
 
 
     @Query("SELECT c FROM CauHinhHeThong c WHERE c.maCauHinh LIKE 'SLIDER%' AND c.loai = :loai" )
-    List<CauHinhHeThong> findPhimByLoai(String loai);
+    List<CauHinhHeThong> findByLoai(String loai);
 
     @Query("SELECT c FROM CauHinhHeThong c WHERE c.maCauHinh LIKE 'SLIDER%' AND c.loai != 'Phim'" )
     List<CauHinhHeThong> findKhuyenMaiByLoai();
+
+    Optional<CauHinhHeThong> findByMaCauHinh(String s);
 }
