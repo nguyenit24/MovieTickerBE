@@ -72,6 +72,9 @@ public class AuthenticateService {
         if (taiKhoanRepository.existsById(request.getTenDangNhap())) {
             throw new AppException(ErrorCode.USER_EXISTS);
         }
+        if (request.getMatKhau().length() < 6) {
+            throw new AppException(ErrorCode.PASSWORD_INVALID);
+        }
 
         pendingRepo.findByEmail(request.getEmail()).ifPresent(pendingRepo::delete);
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
@@ -181,7 +184,7 @@ public class AuthenticateService {
         boolean isAuthenticated = passwordEncoder.matches(request.getPassword(), taiKhoan.getMatKhau());
 
         if (!isAuthenticated) {
-            throw new AppException(ErrorCode.UNTHENTICATED);
+            throw new AppException(ErrorCode.INCORRECT_PASSWORD);
         }
         if (!taiKhoan.isTrangThai()) {
             throw new AppException(ErrorCode.ACCOUNT_LOCKED);
@@ -234,10 +237,10 @@ public class AuthenticateService {
 
     public void resetPassword(ResetPasswordRequest request) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getOtp())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN)); // Cần thêm ErrorCode này
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_TOKEN));
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             passwordResetTokenRepository.delete(resetToken);
-            throw new AppException(ErrorCode.TOKEN_EXPIRED); // Cần thêm ErrorCode này
+            throw new AppException(ErrorCode.TOKEN_EXPIRED);
         }
         TaiKhoan taiKhoan = resetToken.getTaiKhoan();
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
