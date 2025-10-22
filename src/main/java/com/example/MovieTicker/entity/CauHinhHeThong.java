@@ -29,7 +29,6 @@ public class CauHinhHeThong implements Serializable {
     @Column(nullable = false)
     private String loai;
 
-    @Column(nullable = false, insertable = false, updatable = false,
-    columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
+    @Column(nullable = true, updatable = true, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime ngayCapNhat;
 }
