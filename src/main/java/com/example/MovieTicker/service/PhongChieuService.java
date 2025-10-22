@@ -43,6 +43,11 @@ public class PhongChieuService {
     }
     
     public PhongChieu createPhongChieu(PhongChieuRequest request) {
+        Optional<PhongChieu> existingPhong = phongChieuRepository.findByTenPhong(request.getTenPhong());
+        if (existingPhong.isPresent()) {
+            throw new RuntimeException("Phòng chiếu với tên này đã tồn tại");
+        }
+
         PhongChieu phongChieu = new PhongChieu();
         phongChieu.setTenPhong(request.getTenPhong());
         phongChieu.setSoLuongGhe(request.getSoLuongGhe());
