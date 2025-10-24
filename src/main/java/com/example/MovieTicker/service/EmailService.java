@@ -56,6 +56,20 @@ public class EmailService {
         message.setText(emailBody);
         mailSender.send(message);
     }
+    public void sendNewAccountCredentialsEmail(String to, String username, String password) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Chào mừng bạn đến với MovieTicker - Thông tin tài khoản của bạn");
+        message.setText("Chào bạn,\n\n"
+                + "Cảm ơn bạn đã đăng ký tài khoản tại MovieTicker qua Google.\n"
+                + "Tài khoản của bạn đã được tạo thành công. Dưới đây là thông tin đăng nhập để bạn có thể sử dụng trong trường hợp cần thiết:\n\n"
+                + "Tên đăng nhập: " + username + "\n"
+                + "Mật khẩu: " + password + "\n\n"
+                + "Bạn có thể đăng nhập bằng tài khoản Google hoặc sử dụng thông tin trên.\n"
+                + "Trân trọng,\n"
+                + "Đội ngũ MovieTicker");
+        mailSender.send(message);
+    }
 
     public void sendSuccessInvoiceEmail(String to, HoaDonResponse invoiceDetails) {
         System.out.println("=== START SENDING EMAIL ===");

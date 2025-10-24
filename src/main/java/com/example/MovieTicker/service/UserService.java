@@ -59,6 +59,7 @@ public class UserService {
         currentUser.setHoTen(request.getHoTen());
         currentUser.setSdt(request.getSdt());
         currentUser.setNgaySinh(request.getNgaySinh());
+        currentUser.setEmail(request.getEmail().trim());
         return userRepository.save(currentUser);
     }
 

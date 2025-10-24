@@ -1,9 +1,6 @@
 package com.example.MovieTicker.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 import lombok.Getter;
 
@@ -13,6 +10,7 @@ import java.time.LocalDate;
 public class RegistrationRequest {
     @NotBlank(message = "Tên đăng nhập không được để trống")
     @Size(min = 4, message = "Tên đăng nhập phải có ít nhất 4 ký tự")
+    @Pattern(regexp = "^[a-zA-Z0-9._-]+$", message = "Tên đăng nhập chỉ có thể chứa chữ cái, số và các ký tự đặc biệt . _ -")
     private String tenDangNhap;
 
     @NotBlank(message = "Mật khẩu không được để trống")

@@ -23,6 +23,8 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -391,12 +393,18 @@ public class AuthenticateService {
             // Tìm hoặc tạo tài khoản
             TaiKhoan taiKhoan = taiKhoanRepository.findByUser(user).orElseGet(() -> {
                 TaiKhoan newAccount = new TaiKhoan();
-                newAccount.setTenDangNhap("google_" + payload.getSubject()); // Tạo username duy nhất
-                newAccount.setMatKhau(passwordEncoder.encode(UUID.randomUUID().toString())); // Mật khẩu ngẫu nhiên
+                newAccount.setTenDangNhap(email);  // Tạo username duy nhất
+                String rawPassword = UUID.randomUUID().toString().substring(0, 12);
+                newAccount.setMatKhau(passwordEncoder.encode(rawPassword)); // Mật khẩu ngẫu nhiên 12 ký tự
                 newAccount.setUser(user);
                 newAccount.setVaiTro(vaiTroRepository.findByTenVaiTro("USER").orElseThrow());
+                emailService.sendNewAccountCredentialsEmail(email, email, rawPassword);
                 return taiKhoanRepository.save(newAccount);
             });
+
+            if (!taiKhoan.isTrangThai()) {
+                throw new AppException(ErrorCode.ACCOUNT_LOCKED);
+            }
 
             // Tạo và trả về token của hệ thống
             var accessToken = generateToken(taiKhoan, 3600 * 1000); // 1 giờ
@@ -411,5 +419,58 @@ public class AuthenticateService {
         } catch (GeneralSecurityException | IOException e) {
             throw new AppException(ErrorCode.UNTHENTICATED);
         }
+    }
+    @Transactional
+    public AuthenticateResponse changeUsername(ChangeUsernameRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = auth.getName();
+
+        TaiKhoan current = taiKhoanRepository.findById(currentUsername)
+                .orElseThrow(() -> new AppException(ErrorCode.UNTHENTICATED));
+
+        String newUsername = request.getNewUsername().trim();
+        if (newUsername.equals(currentUsername)) {
+            // No change; return tokens for current username to keep behavior consistent
+            var accessToken = generateToken(current, 3600 * 1000);
+            var refreshToken = generateToken(current, 3600 * 24 * 7 * 1000);
+            return AuthenticateResponse.builder()
+                    .authenticated(true)
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+        }
+
+        if (taiKhoanRepository.existsById(newUsername)) {
+            throw new AppException(ErrorCode.USER_EXISTS);
+        }
+
+        // Clone account to new primary key
+        TaiKhoan renamed = new TaiKhoan();
+        renamed.setTenDangNhap(newUsername);
+        renamed.setMatKhau(current.getMatKhau());
+        renamed.setTrangThai(current.isTrangThai());
+        renamed.setUser(current.getUser());
+        renamed.setVaiTro(current.getVaiTro());
+        taiKhoanRepository.save(renamed);
+
+        // Reattach password reset token if exists
+        Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByTaiKhoan(current);
+        tokenOpt.ifPresent(t -> {
+            t.setTaiKhoan(renamed);
+            passwordResetTokenRepository.save(t);
+        });
+
+        // Remove old account
+        taiKhoanRepository.delete(current);
+
+        // Issue fresh tokens for the new username
+        var accessToken = generateToken(renamed, 3600 * 1000);
+        var refreshToken = generateToken(renamed, 3600 * 24 * 7 * 1000);
+
+        return AuthenticateResponse.builder()
+                .authenticated(true)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
     }
 }
