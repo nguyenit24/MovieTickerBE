@@ -521,6 +521,28 @@ public class HoaDonController {
         }
     }
 
+    @GetMapping("/status")
+    public ApiResponse<?> getAllHoaDonStatus(@RequestParam LocalDate NgayBD, @RequestParam LocalDate NgayKT) {
+        try {
+            System.out.println("NgayBD: " + NgayBD + ", NgayKT: " + NgayKT);
+            LocalDateTime start = NgayBD.atStartOfDay(); // 00:00
+            LocalDateTime end = NgayKT.plusDays(1).atStartOfDay(); // sang ngày tiếp theo 00:00
+            List<HoaDonSatisticResponse> listHoaDon = invoiceService.getAllHoaDonStatusResponse(start, end);
+            return ApiResponse.<List<HoaDonSatisticResponse>>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Thành công")
+                    .data(listHoaDon)
+                    .build();
+        }
+        catch (Error e) {
+            return ApiResponse.<String>builder()
+                    .code(HttpStatus.OK.value())
+                    .message("Đã có lỗi xảy ra")
+                    .data(e.getMessage())
+                    .build();
+        }
+    }
+
     @PostMapping("/checkrefund")
     public ApiResponse<?> checkMomoRefund(@RequestBody PaymentRequest paymentRequest) {
         try {

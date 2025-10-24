@@ -189,8 +189,8 @@ public class HoaDonService {
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
         vnp_Params.put("vnp_OrderInfo", "Thanh toan don hang:" + vnp_TxnRef);
         vnp_Params.put("vnp_OrderType", "other");
-
-        vnp_Params.put("vnp_ReturnUrl", backendBaseUrl + PaymentConfig.vnp_ReturnUrl);
+        String vnp_ReturnUrl = backendBaseUrl + PaymentConfig.vnp_ReturnUrl;
+        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
@@ -789,6 +789,14 @@ public class HoaDonService {
         System.out.println("NgayBatDau: " + NgayBatDau);
         System.out.println("NgayKetThuc: " + NgayKetThuc);
         return hoaDonRepository.findAllHoaDonPaid(NgayBatDau, NgayKetThuc);
+    }
+
+    public List<HoaDonSatisticResponse> getAllHoaDonStatusResponse(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {
+        NgayBatDau = NgayBatDau.plusHours(7);
+        NgayKetThuc = NgayKetThuc.plusHours(7);
+        System.out.println("NgayBatDau: " + NgayBatDau);
+        System.out.println("NgayKetThuc: " + NgayKetThuc);
+        return hoaDonRepository.findAllHoaDonStatus(NgayBatDau, NgayKetThuc);
     }
 
     public List<PhimStatisticResponse> getAllHoaDonByPhim(LocalDateTime NgayBatDau, LocalDateTime NgayKetThuc) {

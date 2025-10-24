@@ -47,7 +47,12 @@ public class KhuyenMaiService {
     public KhuyenMai createKhuyenMai(KhuyenMaiRequest request) {
         if (request.getNgayKetThuc().isBefore(request.getNgayBatDau())) {
             throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
-        }   
+        }
+
+        Optional<KhuyenMai> existingKm = khuyenMaiRepository.findByMaCode(request.getMaCode());
+        if (existingKm.isPresent()) {
+            throw new RuntimeException("Mã khuyến mãi đã tồn tại");
+        }
 
         KhuyenMai khuyenMai = KhuyenMai.builder()
                 .tenKm(request.getTenKm())

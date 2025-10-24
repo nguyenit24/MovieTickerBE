@@ -18,6 +18,7 @@ public class PaymentConfig {
 
  
     public static String vnp_PayUrl = " https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
+    // public static String vnp_ReturnUrl = "http://47.130.57.183:8080/api/payment/vn_pay/payment_info";
     public static String vnp_ReturnUrl = "/api/payment/vn_pay/payment_info";
     public static String vnp_RefundUrl = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
     public static String vnp_TmnCode = "R9PTBXOQ";

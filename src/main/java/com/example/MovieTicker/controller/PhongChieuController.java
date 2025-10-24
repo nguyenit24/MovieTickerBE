@@ -76,8 +76,8 @@ public class PhongChieuController {
    @PostMapping
    public ApiResponse<?> createPhongChieu(@RequestBody PhongChieuRequest request) {
        PhongChieu phongChieu = phongChieuService.createPhongChieu(request);
-       return ApiResponse.<PhongChieu>builder()
-               .code(HttpStatus.CREATED.value())
+        return ApiResponse.<PhongChieu>builder()
+              .code(HttpStatus.CREATED.value())
                .message("Tạo phòng chiếu thành công")
                .data(phongChieu)
                .build();
